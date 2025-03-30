@@ -1,0 +1,7 @@
+To run the codes:
+Run server:
+cd server
+node server.js
+
+Run front-end:
+Copy Paste: http://localhost:3000 into browser
