@@ -1,117 +1,70 @@
 import { AuthService } from '../services/auth.js';  // Add this line
 
 export class CustomerBookingsPage {
-    constructor(apiService) {
-        this.apiService = apiService;
-        this.authService = new AuthService();
+  constructor(apiService) {
+    this.apiService = apiService || new ApiService();
+  }
+
+  async render(container, params) {
+    const customerId = params.customerId || this.getCustomerIdFromSession();
+
+    if (!customerId) {
+      container.innerHTML = '<div class="alert alert-danger">Customer not identified</div>';
+      return;
     }
 
-    render(container) {
-        container.innerHTML = `
-        <div class="d-flex justify-content-between align-items-center mb-4">
-          <h2>My Bookings</h2>
-          <a href="#" data-page="search" class="btn btn-outline-primary">
-            Book Another Room
-          </a>
-        </div>
-        <div id="bookingsList">
-          <div class="text-center my-5">
-            <div class="spinner-border" role="status"></div>
+    try {
+      const bookings = await this.apiService.getCustomerBookings(customerId);
+
+      container.innerHTML = this.generateBookingsHTML(bookings);
+    } catch (error) {
+      container.innerHTML = `
+              <div class="alert alert-danger">
+                  Failed to load bookings: ${error.message}
+              </div>
+          `;
+    }
+  }
+
+  getCustomerIdFromSession() {
+    // Try to get customerId from session storage or auth service
+    const bookingConfirmation = JSON.parse(sessionStorage.getItem('bookingConfirmation'));
+    return bookingConfirmation?.customerId || this.apiService.authService.getCurrentUser()?.id;
+  }
+
+  generateBookingsHTML(bookings) {
+    if (!bookings || bookings.length === 0) {
+      return `
+              <div class="alert alert-info">
+                  You don't have any bookings yet.
+                  <a href="#search" class="alert-link">Search for rooms</a>
+              </div>
+          `;
+    }
+
+    return `
+          <div class="row">
+              <div class="col-12">
+                  <h2>My Bookings</h2>
+                  <div class="list-group">
+                      ${bookings.map(booking => `
+                          <div class="list-group-item">
+                              <div class="d-flex w-100 justify-content-between">
+                                  <h5 class="mb-1">Booking #${booking.bookingId}</h5>
+                                  <small class="text-${booking.status === 'Confirmed' ? 'success' : 'danger'}">
+                                      ${booking.status}
+                                  </small>
+                              </div>
+                              <p class="mb-1">Room: ${booking.roomNumber}</p>
+                              <small>
+                                  ${new Date(booking.checkInDate).toLocaleDateString()} - 
+                                  ${new Date(booking.checkOutDate).toLocaleDateString()}
+                              </small>
+                          </div>
+                      `).join('')}
+                  </div>
+              </div>
           </div>
-        </div>
       `;
-
-        this.loadBookings();
-    }
-
-    async loadBookings() {
-        const user = this.authService.getUser();
-        if (!user) {
-            window.location.hash = '#login';
-            return;
-        }
-
-        try {
-            const bookings = await this.apiService.getCustomerBookings(user.id);
-            this.displayBookings(bookings);
-        } catch (error) {
-            document.getElementById('bookingsList').innerHTML = `
-          <div class="alert alert-danger">
-            Error loading bookings: ${error.message}
-          </div>
-        `;
-        }
-    }
-
-    displayBookings(bookings) {
-        const bookingsList = document.getElementById('bookingsList');
-
-        if (bookings.length === 0) {
-            bookingsList.innerHTML = `
-          <div class="alert alert-info">
-            You don't have any bookings yet. <a href="#" data-page="search">Search for rooms</a> to make a booking.
-          </div>
-        `;
-            return;
-        }
-
-        bookingsList.innerHTML = `
-        <div class="table-responsive">
-          <table class="table table-hover">
-            <thead>
-              <tr>
-                <th>Hotel</th>
-                <th>Room</th>
-                <th>Check-in</th>
-                <th>Check-out</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${bookings.map(booking => `
-                <tr>
-                  <td>${booking.HotelName}<br><small>${booking.City}, ${booking.State}</small></td>
-                  <td>${booking.RoomNumber}</td>
-                  <td>${new Date(booking.CheckInDate).toLocaleDateString()}</td>
-                  <td>${new Date(booking.CheckOutDate).toLocaleDateString()}</td>
-                  <td>
-                    <span class="status-badge status-${booking.Status.toLowerCase()}">
-                      ${booking.Status}
-                    </span>
-                  </td>
-                  <td>
-                    ${booking.Status === 'Confirmed' ? `
-                      <button class="btn btn-sm btn-outline-danger cancel-booking" 
-                              data-booking-id="${booking.BookingID}">
-                        Cancel
-                      </button>
-                    ` : ''}
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      `;
-
-        // Add event listeners for cancel buttons
-        document.querySelectorAll('.cancel-booking').forEach(button => {
-            button.addEventListener('click', async (e) => {
-                const bookingId = e.target.getAttribute('data-booking-id');
-                if (confirm('Are you sure you want to cancel this booking?')) {
-                    await this.cancelBooking(bookingId);
-                }
-            });
-        });
-    }
-
-    async cancelBooking(bookingId) {
-        try {
-            await this.apiService.cancelBooking(bookingId);
-            this.loadBookings(); // Refresh the list
-        } catch (error) {
-            alert('Failed to cancel booking: ' + error.message);
-        }
-    }
+  }
 }

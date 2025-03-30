@@ -20,13 +20,17 @@ export class AuthService {
 
     // Stores user data
     setUser(user) {
-        localStorage.setItem(this.userKey, JSON.stringify(user));
+        this.currentUser = user;
+        localStorage.setItem('currentUser', JSON.stringify(user));
     }
 
     // Gets current user
-    getUser() {
-        const user = localStorage.getItem(this.userKey);
-        return user ? JSON.parse(user) : null;
+    getCurrentUser() {
+        if (!this.currentUser) {
+            const user = localStorage.getItem('currentUser');
+            this.currentUser = user ? JSON.parse(user) : null;
+        }
+        return this.currentUser;
     }
 
     // Clears authentication data
@@ -41,7 +45,9 @@ export class AuthService {
     }
 
     // Check auth state and return current user
-    async checkAuthState() {
-        return this.getUser();
+    checkAuthState() {
+        const token = this.getToken();
+        const user = this.getCurrentUser();
+        return Promise.resolve(token && user ? user : null);
     }
 }

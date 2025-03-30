@@ -15,6 +15,7 @@ import { ManageEmployeesPage } from './pages/manage-employees.js';
 import { ManageHotelsPage } from './pages/manage-hotels.js';
 import { ManageRoomsPage } from './pages/manage-rooms.js';
 import { CustomerInfoPage } from './pages/customer-info.js';
+import { BookingSummaryPage } from './pages/bookingsummarypage.js';
 import { Router } from './router.js';
 
 // Initialize services
@@ -37,11 +38,13 @@ const pages = {
     'manage-customers': new ManageCustomersPage(apiService),
     'manage-employees': new ManageEmployeesPage(apiService),
     'manage-hotels': new ManageHotelsPage(apiService),
-    'manage-rooms': new ManageRoomsPage(apiService)
+    'manage-rooms': new ManageRoomsPage(apiService),
+    'booking-summary': new BookingSummaryPage(apiService)
 };
 
 // Initialize router
 const router = new Router(pages, authService);
+window.router = router;
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {

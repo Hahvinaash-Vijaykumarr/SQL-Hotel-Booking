@@ -156,7 +156,6 @@ CREATE TABLE `customer` (
   `City` varchar(100) NOT NULL,
   `Street` varchar(100) NOT NULL,
   `ZipCode` varchar(20) NOT NULL,
-  `RegistrationDate` date NOT NULL,
   `IDType` varchar(50) NOT NULL,
   `IDNumber` varchar(100) NOT NULL,
   PRIMARY KEY (`ID`),
@@ -170,6 +169,7 @@ VALUES
 ('John', 'A', 'Smith', 'California', 'Los Angeles', '123 Main St', '90001', '2025-01-15', 'Driver License', 'DL12345678'),
 ('Emily', 'B', 'Johnson', 'New York', 'New York City', '456 Broadway', '10001', '2025-02-20', 'Passport', 'P987654321'),
 ('Michael', NULL, 'Williams', 'Florida', 'Miami', '789 Ocean Dr', '33101', '2025-03-10', 'SSN', '123-45-6789');
+
 --
 -- Table structure for table `employee`
 --

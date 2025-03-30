@@ -6,12 +6,6 @@ export class ApiService {
         this.authService = authService || new AuthService();
     }
 
-    /**
-     * Make an API request with proper error handling and authentication
-     * @param {string} endpoint - API endpoint
-     * @param {object} options - Fetch options
-     * @returns {Promise<any>} - Response data
-     */
     async request(endpoint, options = {}) {
         const url = `${this.baseUrl}${endpoint}`;
         const token = this.authService.getToken();
@@ -101,99 +95,16 @@ export class ApiService {
         });
     }
 
-    // ==================== RENTING METHODS ====================
-    async createRentingFromBooking(bookingId, employeeId) {
-        return this.request('/rentings/from-booking', {
-            method: 'POST',
-            body: JSON.stringify({ bookingId, employeeId })
-        });
-    }
-
-    async createDirectRenting(rentingData) {
-        return this.request('/rentings', {
-            method: 'POST',
-            body: JSON.stringify(rentingData)
-        });
-    }
-
-    async getCustomerRentings(customerId) {
-        return this.request(`/rentings/customer/${customerId}`);
-    }
-
-    async completeRenting(rentingId) {
-        return this.request(`/rentings/${rentingId}/complete`, {
-            method: 'PUT'
-        });
-    }
-
-    async addPayment(rentingId, paymentData) {
-        return this.request(`/rentings/${rentingId}/payment`, {
-            method: 'POST',
-            body: JSON.stringify(paymentData)
-        });
-    }
-
-    async getRentingPayments(rentingId) {
-        return this.request(`/rentings/${rentingId}/payments`);
-    }
-
     // ==================== CUSTOMER METHODS ====================
     async getCustomers() {
         return this.request('/customers');
     }
 
     async createCustomer(customerData) {
-        try {
-            const response = await fetch(`${this.baseUrl}/customers`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(customerData)
-            });
-
-            // Handle response
-            const contentType = response.headers.get('content-type');
-            const isJson = contentType && contentType.includes('application/json');
-            const responseData = isJson ? await response.json() : null;
-
-            if (!response.ok) {
-                let errorMessage = 'Failed to create customer';
-
-                if (isJson) {
-                    // Handle specific error cases
-                    if (responseData.error === 'Database configuration error') {
-                        errorMessage = 'System configuration error. Please contact support.';
-                    }
-                    else if (responseData.error === 'Validation failed') {
-                        errorMessage = responseData.details.join('\n');
-                    }
-                    else if (responseData.error === 'Duplicate entry') {
-                        errorMessage = 'This ID number is already registered. Please use a different one.';
-                    }
-                    else {
-                        errorMessage = responseData.message || errorMessage;
-                    }
-                } else {
-                    errorMessage = await response.text() || errorMessage;
-                }
-
-                throw new Error(errorMessage);
-            }
-
-            return responseData;
-
-        } catch (error) {
-            console.error('API Request failed:', {
-                endpoint: '/customers',
-                error: error.message,
-                requestData: customerData
-            });
-
-            // Re-throw with user-friendly message if needed
-            throw new Error(error.message || 'Failed to create customer. Please try again.');
-        }
+        return this.request('/customers', {
+            method: 'POST',
+            body: JSON.stringify(customerData)
+        });
     }
 
     async updateCustomer(customerId, customerData) {
