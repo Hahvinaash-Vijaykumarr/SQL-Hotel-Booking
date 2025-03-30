@@ -139,12 +139,7 @@ export class SearchPage {
             <ul class="amenities-list">
               ${room.Amenities ? room.Amenities.split(',').map(amenity => `<li>${amenity.trim()}</li>`).join('') : 'No amenities listed'}
             </ul>
-<<<<<<< HEAD
             <a href="#room-details/${room.RoomID}" class="btn btn-sm btn-outline-primary mt-2">
-=======
-            <a href="#" data-page="room-details" data-room-id="${room.RoomID}" 
-               class="btn btn-sm btn-outline-primary mt-2">
->>>>>>> ae307e0a84664c0c4f02b0eb9db645360d350cdb
               View Details
             </a>
           </div>
