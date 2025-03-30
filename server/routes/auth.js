@@ -4,6 +4,7 @@ const router = express.Router();
 const pool = require('../db');
 require('dotenv').config();
 
+<<<<<<< HEAD
 // Create new customer
 router.post('/customers', async (req, res) => {
     try {
@@ -39,11 +40,37 @@ router.post('/customers', async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Server error' });
+=======
+// Customer login endpoint
+router.post('/customer/login', async (req, res) => {
+    const { id } = req.body;
+
+    try {
+        const [customer] = await pool.query('SELECT * FROM customer WHERE ID = ?', [id]);
+
+        if (!customer.length) {
+            return res.status(401).json({ error: 'Invalid customer ID' });
+        }
+
+        const token = jwt.sign(
+            { id: customer[0].ID, role: 'customer' },
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' }
+        );
+
+        res.json({
+            token,
+            user: customer[0]
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Server error' });
+>>>>>>> ae307e0a84664c0c4f02b0eb9db645360d350cdb
     }
 });
 
 // Employee login endpoint
 router.post('/employee/login', async (req, res) => {
+<<<<<<< HEAD
     const { ssn, password } = req.body;
 
     try {
@@ -52,12 +79,18 @@ router.post('/employee/login', async (req, res) => {
             return res.status(400).json({ error: 'SSN and password are required' });
         }
 
+=======
+    const { ssn } = req.body;
+
+    try {
+>>>>>>> ae307e0a84664c0c4f02b0eb9db645360d350cdb
         const [employee] = await pool.query('SELECT * FROM employee WHERE SSN = ?', [ssn]);
 
         if (!employee.length) {
             return res.status(401).json({ error: 'Invalid employee SSN' });
         }
 
+<<<<<<< HEAD
         // In a real app, you would verify the password here
         // For now we'll just check if it matches the SSN as a placeholder
         if (password !== employee[0].SSN) {
@@ -72,10 +105,17 @@ router.post('/employee/login', async (req, res) => {
             },
             process.env.JWT_SECRET,
             { expiresIn: '8h' }
+=======
+        const token = jwt.sign(
+            { id: employee[0].SSN, role: employee[0].Role },
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' }
+>>>>>>> ae307e0a84664c0c4f02b0eb9db645360d350cdb
         );
 
         res.json({
             token,
+<<<<<<< HEAD
             user: {
                 id: employee[0].SSN,
                 firstName: employee[0].FirstName,
@@ -86,10 +126,17 @@ router.post('/employee/login', async (req, res) => {
         });
     } catch (err) {
         console.error(err);
+=======
+            user: employee[0],
+            role: employee[0].Role
+        });
+    } catch (err) {
+>>>>>>> ae307e0a84664c0c4f02b0eb9db645360d350cdb
         res.status(500).json({ error: 'Server error' });
     }
 });
 
+<<<<<<< HEAD
 // Get customer by ID
 router.get('/customers/:id', async (req, res) => {
     try {
@@ -106,4 +153,6 @@ router.get('/customers/:id', async (req, res) => {
     }
 });
 
+=======
+>>>>>>> ae307e0a84664c0c4f02b0eb9db645360d350cdb
 module.exports = router;

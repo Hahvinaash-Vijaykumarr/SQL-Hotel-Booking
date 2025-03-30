@@ -5,6 +5,7 @@ export class Router {
         this.currentPage = null;
     }
 
+<<<<<<< HEAD
     async navigate(page, params = {}) {
         // Handle hash-based navigation
         if (page.startsWith('#')) {
@@ -25,6 +26,9 @@ export class Router {
             page = pageName;
         }
 
+=======
+    navigate(page, params = {}) {
+>>>>>>> ae307e0a84664c0c4f02b0eb9db645360d350cdb
         if (this.currentPage && typeof this.currentPage.onLeave === 'function') {
             this.currentPage.onLeave();
         }
@@ -35,13 +39,18 @@ export class Router {
         if (this.pages[page]) {
             this.currentPage = this.pages[page];
             contentEl.innerHTML = '';
+<<<<<<< HEAD
             await this.currentPage.render(contentEl, params);
+=======
+            this.currentPage.render(contentEl, params);
+>>>>>>> ae307e0a84664c0c4f02b0eb9db645360d350cdb
 
             if (typeof this.currentPage.onLoad === 'function') {
                 this.currentPage.onLoad();
             }
         } else {
             contentEl.innerHTML = '<h1>Page not found</h1>';
+<<<<<<< HEAD
             console.error(`Page not found: ${page}`);
         }
     }
@@ -58,6 +67,11 @@ export class Router {
         });
     }
 
+=======
+        }
+    }
+
+>>>>>>> ae307e0a84664c0c4f02b0eb9db645360d350cdb
     updateNavigation(user) {
         const mainNav = document.getElementById('main-nav');
         const authNav = document.getElementById('auth-nav');
@@ -66,9 +80,15 @@ export class Router {
 
         // Clear existing nav items
         mainNav.innerHTML = `
+<<<<<<< HEAD
             <li class="nav-item"><a class="nav-link" href="#" data-page="home">Home</a></li>
             <li class="nav-item"><a class="nav-link" href="#" data-page="search">Search Rooms</a></li>
         `;
+=======
+        <li class="nav-item"><a class="nav-link" href="#" data-page="home">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" data-page="search">Search Rooms</a></li>
+      `;
+>>>>>>> ae307e0a84664c0c4f02b0eb9db645360d350cdb
 
         authNav.innerHTML = user
             ? `<li class="nav-item"><a class="nav-link" href="#" data-action="logout">Logout</a></li>`
@@ -78,6 +98,7 @@ export class Router {
         if (user) {
             if (user.role === 'customer') {
                 mainNav.innerHTML += `
+<<<<<<< HEAD
                     <li class="nav-item"><a class="nav-link" href="#" data-page="customer-bookings">My Bookings</a></li>
                     <li class="nav-item"><a class="nav-link" href="#" data-page="customer-rentings">My Rentings</a></li>
                 `;
@@ -102,6 +123,32 @@ export class Router {
                             </ul>
                         </li>
                     `;
+=======
+            <li class="nav-item"><a class="nav-link" href="#" data-page="customer-bookings">My Bookings</a></li>
+            <li class="nav-item"><a class="nav-link" href="#" data-page="customer-rentings">My Rentings</a></li>
+          `;
+            } else if (['Receptionist', 'Manager'].includes(user.role)) {
+                mainNav.innerHTML += `
+            <li class="nav-item"><a class="nav-link" href="#" data-page="employee-dashboard">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="#" data-page="create-renting">Create Renting</a></li>
+            <li class="nav-item"><a class="nav-link" href="#" data-page="view-payments">View Payments</a></li>
+          `;
+
+                if (user.role === 'Manager') {
+                    mainNav.innerHTML += `
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                  Management
+                </a>
+                <ul class="dropdown-menu">
+                  <li><a class="dropdown-item" href="#" data-page="manage-customers">Customers</a></li>
+                  <li><a class="dropdown-item" href="#" data-page="manage-employees">Employees</a></li>
+                  <li><a class="dropdown-item" href="#" data-page="manage-hotels">Hotels</a></li>
+                  <li><a class="dropdown-item" href="#" data-page="manage-rooms">Rooms</a></li>
+                </ul>
+              </li>
+            `;
+>>>>>>> ae307e0a84664c0c4f02b0eb9db645360d350cdb
                 }
             }
         }
