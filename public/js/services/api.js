@@ -146,16 +146,22 @@ export class ApiService {
     }
 
     async employeeLogin(credentials) {
-        const response = await this.request('/employee/login', {
-            method: 'POST',
-            body: JSON.stringify(credentials)
-        });
-
-        if (response.token) {
-            this.authService.setToken(response.token);
+        try {
+            const response = await this.request('/employee/login', {
+                method: 'POST',
+                body: JSON.stringify(credentials)
+            });
+    
+            if (response.token) {
+                this.authService.setAuthToken(response.token);
+                this.authService.setUser(response.user);
+            }
+    
+            return response;
+        } catch (error) {
+            console.error('Login failed:', error);
+            throw error;
         }
-
-        return response;
     }
 
     // ==================== HOTEL METHODS ====================

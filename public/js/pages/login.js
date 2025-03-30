@@ -3,6 +3,9 @@ export class LoginPage {
     this.authService = authService;
     this.apiService = apiService;
     this.router = router;
+    
+    // Bind the methods to maintain 'this' context
+    this.handleEmployeeLogin = this.handleEmployeeLogin.bind(this);
   }
 
   render(container) {
@@ -11,55 +14,24 @@ export class LoginPage {
         <div class="col-md-6">
           <div class="card">
             <div class="card-header">
-              <h4 class="mb-0">Login</h4>
+              <h4 class="mb-0">Employee Login</h4>
             </div>
             <div class="card-body">
-              <ul class="nav nav-tabs mb-4" id="loginTabs">
-                <li class="nav-item">
-                  <a class="nav-link active" id="customer-tab" data-bs-toggle="tab" href="#customer">
-                    Customer Login
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" id="employee-tab" data-bs-toggle="tab" href="#employee">
-                    Employee Login
-                  </a>
-                </li>
-              </ul>
-              
-              <div class="tab-content" id="loginTabsContent">
-                <div class="tab-pane fade show active" id="customer">
-                  <form id="customerLoginForm">
-                    <div class="mb-3">
-                      <label for="customerId" class="form-label">Customer ID</label>
-                      <input type="text" class="form-control" id="customerId" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">
-                      <span class="login-text">Login as Customer</span>
-                      <span class="spinner-border spinner-border-sm d-none" id="customerSpinner"></span>
-                    </button>
-                    <div id="customerLoginError" class="text-danger mt-2"></div>
-                  </form>
+              <form id="employeeLoginForm">
+                <div class="mb-3">
+                  <label for="employeeSsn" class="form-label">SSN</label>
+                  <input type="text" class="form-control" id="employeeSsn" required placeholder="Enter your SSN (e.g., 111223333)">
                 </div>
-                
-                <div class="tab-pane fade" id="employee">
-                  <form id="employeeLoginForm">
-                    <div class="mb-3">
-                      <label for="employeeSsn" class="form-label">SSN</label>
-                      <input type="text" class="form-control" id="employeeSsn" required>
-                    </div>
-                    <div class="mb-3">
-                      <label for="employeePassword" class="form-label">Password</label>
-                      <input type="password" class="form-control" id="employeePassword" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">
-                      <span class="login-text">Login as Employee</span>
-                      <span class="spinner-border spinner-border-sm d-none" id="employeeSpinner"></span>
-                    </button>
-                    <div id="employeeLoginError" class="text-danger mt-2"></div>
-                  </form>
+                <div class="mb-3">
+                  <label for="employeePassword" class="form-label">Password</label>
+                  <input type="password" class="form-control" id="employeePassword" required placeholder="Enter your password">
                 </div>
-              </div>
+                <button type="submit" class="btn btn-primary">
+                  <span class="login-text">Login</span>
+                  <span class="spinner-border spinner-border-sm d-none" id="employeeSpinner"></span>
+                </button>
+                <div id="employeeLoginError" class="text-danger mt-2"></div>
+              </form>
             </div>
           </div>
         </div>
@@ -70,58 +42,12 @@ export class LoginPage {
   }
 
   setupFormListeners() {
-    document.getElementById('customerLoginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      await this.handleCustomerLogin();
-    });
-
-    document.getElementById('employeeLoginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      await this.handleEmployeeLogin();
-    });
-  }
-
-  async handleCustomerLogin() {
-    const customerId = document.getElementById('customerId').value.trim();
-    const errorElement = document.getElementById('customerLoginError');
-    const spinner = document.getElementById('customerSpinner');
-    const buttonText = document.querySelector('#customerLoginForm .login-text');
-
-    try {
-      // Show loading state
-      errorElement.textContent = '';
-      spinner.classList.remove('d-none');
-      buttonText.classList.add('d-none');
-
-      // First try to get customer details to verify the ID
-      const customer = await this.apiService.getCustomerDetails(customerId);
-
-      if (!customer) {
-        throw new Error('Invalid customer ID');
-      }
-
-      // Create user object
-      const user = {
-        id: customerId,
-        role: 'customer',
-        name: `${customer.firstName} ${customer.lastName}`,
-        token: `customer-${customerId}-token` // Simple token for demo
-      };
-
-      // Persist the authentication
-      await this.authService.setUser(user);
-      this.authService.setToken(user.token);
-
-      // Update navigation and redirect
-      this.router.updateNavigation(user);
-      window.location.hash = '#home';
-
-    } catch (error) {
-      console.error('Customer login failed:', error);
-      errorElement.textContent = error.message || 'Login failed. Please try again.';
-    } finally {
-      spinner.classList.add('d-none');
-      buttonText.classList.remove('d-none');
+    const form = document.getElementById('employeeLoginForm');
+    if (form) {
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        this.handleEmployeeLogin();
+      });
     }
   }
 
@@ -138,29 +64,46 @@ export class LoginPage {
       spinner.classList.remove('d-none');
       buttonText.classList.add('d-none');
 
-      // Authenticate with the API
-      const response = await this.apiService.employeeLogin({ ssn, password });
-
-      if (!response || !response.token) {
-        throw new Error('Invalid credentials');
+      // Validate SSN format (basic check for 9 digits)
+      if (!/^\d{9}$/.test(ssn)) {
+        throw new Error('Please enter a valid 9-digit SSN');
       }
 
-      // Create user object from response
+      // Simplified authentication - just check if SSN and password match
+      if (ssn !== password) {
+        throw new Error('SSN and password must match');
+      }
+
+      // Create mock user data
       const user = {
-        id: response.employeeId,
-        ssn: response.ssn,
-        role: response.role,
-        name: response.name,
-        token: response.token
+        id: ssn,
+        ssn: ssn,
+        role: ssn === '111223333' ? 'Manager' : 'Receptionist',
+        firstName: 'Employee',
+        lastName: `#${ssn.substring(5)}`,
+        hotelId: 1
       };
 
-      // Persist the authentication
-      await this.authService.setUser(user);
-      this.authService.setToken(user.token);
+      // Create mock token
+      const token = `mock-token-${ssn}-${Date.now()}`;
 
-      // Update navigation and redirect
-      this.router.updateNavigation(user);
-      window.location.hash = response.role === 'Manager' ? '#employee-dashboard' : '#create-renting';
+      // Persist the authentication
+      this.authService.setAuthToken(token);
+      this.authService.setUser(user);
+
+      // Check if router exists before calling updateNavigation
+      if (this.router && typeof this.router.updateNavigation === 'function') {
+        this.router.updateNavigation(user);
+      } else {
+        console.warn('Router or updateNavigation method not available');
+      }
+      
+      // Redirect based on role
+      if (user.role === 'Manager') {
+        window.location.hash = '#employee-dashboard';
+      } else {
+        window.location.hash = '#create-renting';
+      }
 
     } catch (error) {
       console.error('Employee login failed:', error);
