@@ -32,7 +32,6 @@ router.get('/available', async (req, res) => {
     } = req.query;
 
     try {
-        // Base query without amenities
         let query = `
       SELECT 
         r.*, 
@@ -55,12 +54,13 @@ router.get('/available', async (req, res) => {
             params.push(endDate, startDate, endDate, startDate);
         }
 
-        // Other filters
+        // In your /available route handler:
         if (capacity) {
-            query += ' AND r.Capacity >= ?';
+            query += ' AND TRIM(LOWER(r.Capacity)) = LOWER(TRIM(?))'; // Case-insensitive + trimmed
             params.push(capacity);
         }
 
+        // Other filters (unchanged)
         if (area) {
             query += ' AND (h.City = ? OR h.State = ?)';
             params.push(area, area);
@@ -86,7 +86,6 @@ router.get('/available', async (req, res) => {
             params.push(maxPrice);
         }
 
-        // Execute query
         const [rooms] = await pool.query(query, params);
         res.json(rooms);
     } catch (err) {
