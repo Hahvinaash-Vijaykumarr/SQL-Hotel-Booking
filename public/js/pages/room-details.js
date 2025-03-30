@@ -4,9 +4,16 @@ export class RoomDetailsPage {
     this.authService = authService;
     this.roomId = null;
     this.room = null;
+<<<<<<< HEAD
+    this.bookingDates = null;
+  }
+
+  async render(container, params) {
+=======
   }
 
   render(container, params) {
+>>>>>>> ae307e0a84664c0c4f02b0eb9db645360d350cdb
     if (!params || !params.roomId) {
       container.innerHTML = '<div class="alert alert-danger">Invalid room ID</div>';
       return;
@@ -59,7 +66,11 @@ export class RoomDetailsPage {
       </div>
     `;
 
+<<<<<<< HEAD
+    await this.loadRoomDetails();
+=======
     this.loadRoomDetails();
+>>>>>>> ae307e0a84664c0c4f02b0eb9db645360d350cdb
     this.setupBookingForm();
   }
 
@@ -81,6 +92,11 @@ export class RoomDetailsPage {
 
   displayRoomDetails() {
     const detailsContainer = document.getElementById('roomDetails');
+<<<<<<< HEAD
+    if (!detailsContainer) return;
+
+=======
+>>>>>>> ae307e0a84664c0c4f02b0eb9db645360d350cdb
     detailsContainer.innerHTML = `
       <h3>${this.room.Capacity} Room #${this.room.RoomNumber}</h3>
       <p class="lead">$${this.room.Price} per night</p>
@@ -109,6 +125,15 @@ export class RoomDetailsPage {
     const priceEstimate = document.getElementById('priceEstimate');
     const bookButton = document.getElementById('bookButton');
 
+<<<<<<< HEAD
+    // Check if elements exist before setting up
+    if (!form || !checkInInput || !checkOutInput || !priceEstimate || !bookButton) {
+      console.error('One or more form elements not found');
+      return;
+    }
+
+=======
+>>>>>>> ae307e0a84664c0c4f02b0eb9db645360d350cdb
     // Set minimum dates
     const today = new Date().toISOString().split('T')[0];
     checkInInput.min = today;
@@ -124,18 +149,34 @@ export class RoomDetailsPage {
 
     checkOutInput.addEventListener('change', this.updatePriceEstimate.bind(this));
 
+<<<<<<< HEAD
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.handleBooking();
+=======
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       await this.handleBooking();
+>>>>>>> ae307e0a84664c0c4f02b0eb9db645360d350cdb
     });
   }
 
   updatePriceEstimate() {
+<<<<<<< HEAD
+    const checkInDate = document.getElementById('checkInDate')?.value;
+    const checkOutDate = document.getElementById('checkOutDate')?.value;
+    const priceEstimate = document.getElementById('priceEstimate');
+    const bookButton = document.getElementById('bookButton');
+
+    if (!priceEstimate || !bookButton) return;
+
+=======
     const checkInDate = document.getElementById('checkInDate').value;
     const checkOutDate = document.getElementById('checkOutDate').value;
     const priceEstimate = document.getElementById('priceEstimate');
     const bookButton = document.getElementById('bookButton');
 
+>>>>>>> ae307e0a84664c0c4f02b0eb9db645360d350cdb
     if (!checkInDate || !checkOutDate) {
       priceEstimate.textContent = 'Select dates to see price estimate';
       bookButton.disabled = true;
@@ -159,6 +200,25 @@ export class RoomDetailsPage {
     bookButton.disabled = false;
   }
 
+<<<<<<< HEAD
+  handleBooking() {
+    const checkInDate = document.getElementById('checkInDate')?.value;
+    const checkOutDate = document.getElementById('checkOutDate')?.value;
+
+    if (!checkInDate || !checkOutDate) {
+      alert('Please select both check-in and check-out dates');
+      return;
+    }
+
+    // Store dates in sessionStorage
+    sessionStorage.setItem('bookingDates', JSON.stringify({
+      checkInDate,
+      checkOutDate
+    }));
+
+    // Ensure proper URL format for navigation
+    window.location.hash = `#customer-info?roomId=${this.roomId}`;
+=======
   async handleBooking() {
     const user = this.authService.getUser();
     if (!user) {
@@ -182,5 +242,6 @@ export class RoomDetailsPage {
     } catch (error) {
       alert('Booking failed: ' + error.message);
     }
+>>>>>>> ae307e0a84664c0c4f02b0eb9db645360d350cdb
   }
 }

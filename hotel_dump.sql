@@ -143,36 +143,33 @@ UNLOCK TABLES;
 -- Table structure for table `customer`
 --
 
+-- Drop existing table if it exists
 DROP TABLE IF EXISTS `customer`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
+
+-- Create the consolidated customer table with all required fields
 CREATE TABLE `customer` (
-  `ID` int NOT NULL,
-  `FirstName` varchar(100) DEFAULT NULL,
+  `ID` int NOT NULL AUTO_INCREMENT,
+  `FirstName` varchar(100) NOT NULL,
   `MiddleName` varchar(100) DEFAULT NULL,
-  `LastName` varchar(100) DEFAULT NULL,
-  `State` varchar(100) DEFAULT NULL,
-  `City` varchar(100) DEFAULT NULL,
-  `Street` varchar(100) DEFAULT NULL,
-  `ZipCode` varchar(20) DEFAULT NULL,
-  `RegistrationDate` date DEFAULT NULL,
-  PRIMARY KEY (`ID`)
+  `LastName` varchar(100) NOT NULL,
+  `State` varchar(100) NOT NULL,
+  `City` varchar(100) NOT NULL,
+  `Street` varchar(100) NOT NULL,
+  `ZipCode` varchar(20) NOT NULL,
+  `RegistrationDate` date NOT NULL,
+  `IDType` varchar(50) NOT NULL,
+  `IDNumber` varchar(100) NOT NULL,
+  PRIMARY KEY (`ID`),
+  UNIQUE KEY `idx_idnumber` (`IDNumber`) -- Added unique constraint
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `customer`
---
-
-LOCK TABLES `customer` WRITE;
-/*!40000 ALTER TABLE `customer` DISABLE KEYS */;
-INSERT INTO `customer` VALUES 
-(1001,'John','A','Smith','California','Los Angeles','123 Main St','90001','2025-01-15'),
-(1002,'Emily','B','Johnson','New York','New York City','456 Broadway','10001','2025-02-20'),
-(1003,'Michael',NULL,'Williams','Florida','Miami','789 Ocean Dr','33101','2025-03-10');
-/*!40000 ALTER TABLE `customer` ENABLE KEYS */;
-UNLOCK TABLES;
-
+-- Insert sample customer data with all fields
+INSERT INTO `customer` 
+(`FirstName`, `MiddleName`, `LastName`, `State`, `City`, `Street`, `ZipCode`, `RegistrationDate`, `IDType`, `IDNumber`) 
+VALUES 
+('John', 'A', 'Smith', 'California', 'Los Angeles', '123 Main St', '90001', '2025-01-15', 'Driver License', 'DL12345678'),
+('Emily', 'B', 'Johnson', 'New York', 'New York City', '456 Broadway', '10001', '2025-02-20', 'Passport', 'P987654321'),
+('Michael', NULL, 'Williams', 'Florida', 'Miami', '789 Ocean Dr', '33101', '2025-03-10', 'SSN', '123-45-6789');
 --
 -- Table structure for table `employee`
 --

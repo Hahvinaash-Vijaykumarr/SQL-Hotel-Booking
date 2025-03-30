@@ -14,6 +14,10 @@ import { ManageCustomersPage } from './pages/manage-customers.js';
 import { ManageEmployeesPage } from './pages/manage-employees.js';
 import { ManageHotelsPage } from './pages/manage-hotels.js';
 import { ManageRoomsPage } from './pages/manage-rooms.js';
+<<<<<<< HEAD
+import { CustomerInfoPage } from './pages/customer-info.js';
+=======
+>>>>>>> ae307e0a84664c0c4f02b0eb9db645360d350cdb
 import { Router } from './router.js';
 
 // Initialize services
@@ -26,6 +30,10 @@ const pages = {
     login: new LoginPage(authService, apiService),
     search: new SearchPage(apiService),
     'room-details': new RoomDetailsPage(apiService, authService),
+<<<<<<< HEAD
+    'customer-info': new CustomerInfoPage(apiService, authService), // Make sure this exists
+=======
+>>>>>>> ae307e0a84664c0c4f02b0eb9db645360d350cdb
     'customer-bookings': new CustomerBookingsPage(apiService),
     'customer-rentings': new CustomerRentingsPage(apiService),
     'employee-dashboard': new EmployeeDashboardPage(apiService),
@@ -41,6 +49,39 @@ const pages = {
 // Initialize router
 const router = new Router(pages, authService);
 
+<<<<<<< HEAD
+// Initialize the application
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize router
+    router.init();
+
+    // Check auth state and update navigation
+    authService.checkAuthState().then(user => {
+        router.updateNavigation(user);
+    });
+
+    // Handle navigation clicks
+    document.addEventListener('click', e => {
+        if (e.target.matches('[data-page]')) {
+            e.preventDefault();
+            const page = e.target.getAttribute('data-page');
+            router.navigate(page);
+        } else if (e.target.closest('[data-page]')) {
+            e.preventDefault();
+            const page = e.target.closest('[data-page]').getAttribute('data-page');
+            router.navigate(page);
+        }
+    });
+
+    // Handle logout
+    document.addEventListener('click', e => {
+        if (e.target.matches('[data-action="logout"]')) {
+            e.preventDefault();
+            authService.logout();
+            router.navigate('login');
+        }
+    });
+=======
 // Handle initial load and navigation
 document.addEventListener('DOMContentLoaded', () => {
     authService.checkAuthState().then(user => {
@@ -81,4 +122,5 @@ document.addEventListener('click', e => {
         authService.logout();
         router.navigate('login');
     }
+>>>>>>> ae307e0a84664c0c4f02b0eb9db645360d350cdb
 });
