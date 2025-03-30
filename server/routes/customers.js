@@ -3,7 +3,6 @@ const router = express.Router();
 const db = require('../db');
 
 router.post('/', async (req, res) => {
-    // Validate request content type
     if (!req.is('application/json')) {
         return res.status(415).json({
             error: 'Unsupported Media Type',
@@ -14,7 +13,6 @@ router.post('/', async (req, res) => {
     try {
         const { firstName, middleName, lastName, state, city, street, zipCode, idType, idNumber } = req.body;
 
-        // Validate required fields with specific error messages
         const requiredFields = {
             firstName: 'First name is required',
             lastName: 'Last name is required',
@@ -37,13 +35,11 @@ router.post('/', async (req, res) => {
             });
         }
 
-        // Get database connection
         const connection = await db.getConnection();
 
         try {
             await connection.beginTransaction();
 
-            // Insert customer with all fields
             const [result] = await connection.query(
                 `INSERT INTO customer 
                 (FirstName, MiddleName, LastName, State, City, Street, ZipCode, RegistrationDate, IDType, IDNumber) 
@@ -56,7 +52,7 @@ router.post('/', async (req, res) => {
                     city,
                     street,
                     zipCode,
-                    new Date().toISOString().split('T')[0], // Current date
+                    new Date().toISOString().split('T')[0],
                     idType,
                     idNumber
                 ]
@@ -66,6 +62,7 @@ router.post('/', async (req, res) => {
 
             return res.status(201).json({
                 success: true,
+                idNumber: idNumber, // Return the ID number for booking creation
                 customerId: result.insertId,
                 message: 'Customer created successfully'
             });
@@ -73,7 +70,6 @@ router.post('/', async (req, res) => {
         } catch (err) {
             await connection.rollback();
 
-            // Handle specific database errors
             if (err.code === 'ER_BAD_FIELD_ERROR') {
                 return res.status(500).json({
                     error: 'Database configuration error',
@@ -112,6 +108,25 @@ router.post('/', async (req, res) => {
                 code: err.code
             } : undefined
         });
+    }
+});
+
+// Add endpoint to get customer by ID number
+router.get('/:idNumber', async (req, res) => {
+    try {
+        const [rows] = await db.query(
+            'SELECT * FROM customer WHERE IDNumber = ?',
+            [req.params.idNumber]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Customer not found' });
+        }
+
+        res.json(rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error' });
     }
 });
 

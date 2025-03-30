@@ -94,8 +94,6 @@ export class CustomerInfoPage {
 
     setupForm() {
         const form = document.getElementById('customerInfoForm');
-        const errorDisplay = document.getElementById('formError');
-
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             await this.handleCustomerRegistration();
@@ -173,9 +171,6 @@ export class CustomerInfoPage {
             errorDisplay.textContent = error.message;
             errorDisplay.style.display = 'block';
 
-            // Scroll to error message
-            errorDisplay.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        } finally {
             submitButton.disabled = false;
             submitButton.textContent = 'Register Customer';
         }

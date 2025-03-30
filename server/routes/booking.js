@@ -4,11 +4,11 @@ const pool = require('../db');
 
 // Create booking
 router.post('/', async (req, res) => {
-    const { customerId, roomId, checkInDate, checkOutDate } = req.body;
+  const { customerId, roomId, checkInDate, checkOutDate } = req.body;
 
-    try {
-        // Check room availability
-        const [availability] = await pool.query(`
+  try {
+    // Check room availability
+    const [availability] = await pool.query(`
       SELECT 1 FROM room r
       WHERE r.RoomID = ? 
       AND r.Damaged = 0
@@ -34,27 +34,27 @@ router.post('/', async (req, res) => {
       )
     `, [roomId, ...Array(12).fill([checkOutDate, checkInDate]).flat()]);
 
-        if (availability.length === 0) {
-            return res.status(400).json({ message: 'Room not available for selected dates' });
-        }
+    if (availability.length === 0) {
+      return res.status(400).json({ message: 'Room not available for selected dates' });
+    }
 
-        // Create booking
-        const [result] = await pool.query(`
+    // Create booking
+    const [result] = await pool.query(`
       INSERT INTO booking (CustomerID, RoomID, CheckInDate, CheckOutDate)
       VALUES (?, ?, ?, ?)
     `, [customerId, roomId, checkInDate, checkOutDate]);
 
-        res.status(201).json({ bookingId: result.insertId });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Server error' });
-    }
+    res.status(201).json({ bookingId: result.insertId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 // Get customer bookings
 router.get('/customer/:id', async (req, res) => {
-    try {
-        const [bookings] = await pool.query(`
+  try {
+    const [bookings] = await pool.query(`
       SELECT b.*, r.RoomNumber, h.HotelName, h.City, h.State
       FROM booking b
       JOIN room r ON b.RoomID = r.RoomID
@@ -63,22 +63,22 @@ router.get('/customer/:id', async (req, res) => {
       ORDER BY b.CheckInDate DESC
     `, [req.params.id]);
 
-        res.json(bookings);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Server error' });
-    }
+    res.json(bookings);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 // Cancel booking
 router.put('/:id/cancel', async (req, res) => {
-    try {
-        await pool.query('UPDATE booking SET Status = "Cancelled" WHERE BookingID = ?', [req.params.id]);
-        res.json({ message: 'Booking cancelled successfully' });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Server error' });
-    }
+  try {
+    await pool.query('UPDATE booking SET Status = "Cancelled" WHERE BookingID = ?', [req.params.id]);
+    res.json({ message: 'Booking cancelled successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 module.exports = router;
