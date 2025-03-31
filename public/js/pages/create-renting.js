@@ -1,13 +1,13 @@
-import { AuthService } from '../services/auth.js';  // Add this line
+import { AuthService } from '../services/auth.js';
 
 export class CreateRentingPage {
-    constructor(apiService) {
-        this.apiService = apiService;
-        this.authService = new AuthService();
-    }
+  constructor(apiService) {
+    this.apiService = apiService;
+    this.authService = new AuthService();
+  }
 
-    render(container) {
-        container.innerHTML = `
+  render(container) {
+    container.innerHTML = `
         <div class="row">
           <div class="col-md-8 mx-auto">
             <div class="card">
@@ -67,68 +67,114 @@ export class CreateRentingPage {
         </div>
       `;
 
-        // Set today's date as default for direct renting
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('directCheckIn').value = today;
-        document.getElementById('directCheckIn').min = today;
-        document.getElementById('directCheckOut').min = today;
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('directCheckIn').value = today;
+    document.getElementById('directCheckIn').min = today;
+    document.getElementById('directCheckOut').min = today;
 
-        // Add form event listeners
-        document.getElementById('fromBookingForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            await this.handleFromBooking();
-        });
+    document.getElementById('fromBookingForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.handleFromBooking().catch(error => {
+        console.error('Error in form submission:', error);
+        alert('Error creating renting: ' + error.message);
+      });
+    });
 
-        document.getElementById('directRentingForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            await this.handleDirectRenting();
-        });
+    document.getElementById('directRentingForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.handleDirectRenting().catch(error => {
+        console.error('Error in form submission:', error);
+        alert('Error creating renting: ' + error.message);
+      });
+    });
+  }
+
+  async handleFromBooking() {
+    const user = this.authService.getUser();
+    if (!user || !user.id) {
+      alert('Please login first with a valid employee account');
+      window.location.hash = '#login';
+      return;
     }
 
-    async handleFromBooking() {
-        const user = this.authService.getUser();
-        if (!user) {
-            alert('Please login first');
-            window.location.hash = '#login';
-            return;
-        }
-
-        const bookingId = document.getElementById('bookingId').value;
-
-        try {
-            await this.apiService.createRentingFromBooking(bookingId, user.id);
-            alert('Renting created successfully');
-            window.location.hash = '#employee-dashboard';
-        } catch (error) {
-            alert('Error creating renting: ' + error.message);
-        }
+    const bookingId = document.getElementById('bookingId').value.trim();
+    if (!bookingId) {
+      alert('Please enter a Booking ID');
+      return;
     }
 
-    async handleDirectRenting() {
-        const user = this.authService.getUser();
-        if (!user) {
-            alert('Please login first');
-            window.location.hash = '#login';
-            return;
-        }
+    try {
+      const response = await this.apiService.createRentingFromBooking(bookingId, user.id);
 
-        const customerId = document.getElementById('customerId').value;
-        const roomId = document.getElementById('directRoomId').value;
-        const checkInDate = document.getElementById('directCheckIn').value;
-        const checkOutDate = document.getElementById('directCheckOut').value;
+      if (response.rentingId) {
+        alert(`Renting #${response.rentingId} created successfully`);
+        window.location.hash = '#employee-dashboard';
+      } else {
+        throw new Error('Unexpected response from server');
+      }
+    } catch (error) {
+      console.error('Renting creation failed:', error);
 
-        try {
-            await this.apiService.createDirectRenting({
-                customerId,
-                roomId,
-                checkInDate,
-                checkOutDate,
-                employeeId: user.id
-            });
-            alert('Renting created successfully');
-            window.location.hash = '#employee-dashboard';
-        } catch (error) {
-            alert('Error creating renting: ' + error.message);
+      let errorMessage = 'Failed to create renting';
+      if (error.response) {
+        // Handle structured error responses from backend
+        const serverError = await error.response.json();
+        errorMessage = serverError.message || errorMessage;
+
+        if (serverError.details) {
+          if (serverError.details.includes('No employee with SSN')) {
+            errorMessage = 'Your employee account is not properly registered';
+          } else if (serverError.details.customerExists === false) {
+            errorMessage = 'Customer record not found';
+          } else if (serverError.details.hotelExists === false) {
+            errorMessage = 'Hotel record not found';
+          } else if (serverError.details.roomExists === false) {
+            errorMessage = 'Room record not found';
+          }
         }
+      } else if (error.message.includes('Booking not found')) {
+        errorMessage = 'No booking found with this ID';
+      } else if (error.message.includes('not confirmed')) {
+        errorMessage = 'The booking is not confirmed yet';
+      } else if (error.message.includes('not available')) {
+        errorMessage = 'Room not available for the selected dates';
+      }
+
+      alert(`Error: ${errorMessage}`);
     }
+  }
+
+  async handleDirectRenting() {
+    const user = this.authService.getUser();
+    if (!user) {
+      alert('Please login first');
+      window.location.hash = '#login';
+      return;
+    }
+
+    const customerId = document.getElementById('customerId').value.trim();
+    const roomId = document.getElementById('directRoomId').value.trim();
+    const checkInDate = document.getElementById('directCheckIn').value;
+    const checkOutDate = document.getElementById('directCheckOut').value;
+
+    if (!customerId || !roomId || !checkInDate || !checkOutDate) {
+      alert('Please fill all required fields');
+      return;
+    }
+
+    try {
+      await this.apiService.createDirectRenting({
+        customerId,
+        roomId,
+        checkInDate,
+        checkOutDate,
+        employeeId: user.id
+      });
+
+      alert('Renting created successfully');
+      window.location.hash = '#employee-dashboard';
+    } catch (error) {
+      alert(error.message || 'Failed to create direct renting');
+    }
+  }
 }

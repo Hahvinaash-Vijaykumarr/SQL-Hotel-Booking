@@ -3,8 +3,7 @@ export class LoginPage {
     this.authService = authService;
     this.apiService = apiService;
     this.router = router;
-    
-    // Bind the methods to maintain 'this' context
+
     this.handleEmployeeLogin = this.handleEmployeeLogin.bind(this);
   }
 
@@ -19,12 +18,9 @@ export class LoginPage {
             <div class="card-body">
               <form id="employeeLoginForm">
                 <div class="mb-3">
-                  <label for="employeeSsn" class="form-label">SSN</label>
-                  <input type="text" class="form-control" id="employeeSsn" required placeholder="Enter your SSN (e.g., 111223333)">
-                </div>
-                <div class="mb-3">
-                  <label for="employeePassword" class="form-label">Password</label>
-                  <input type="password" class="form-control" id="employeePassword" required placeholder="Enter your password">
+                  <label for="employeeSsn" class="form-label">SSN (9 digits)</label>
+                  <input type="text" class="form-control" id="employeeSsn" required 
+                         placeholder="123456789" maxlength="9">
                 </div>
                 <button type="submit" class="btn btn-primary">
                   <span class="login-text">Login</span>
@@ -48,66 +44,51 @@ export class LoginPage {
         e.preventDefault();
         this.handleEmployeeLogin();
       });
+
+      // Only allow numeric input
+      const ssnInput = document.getElementById('employeeSsn');
+      ssnInput.addEventListener('input', (e) => {
+        e.target.value = e.target.value.replace(/\D/g, '');
+      });
     }
   }
 
   async handleEmployeeLogin() {
-    const ssn = document.getElementById('employeeSsn').value.trim();
-    const password = document.getElementById('employeePassword').value;
+    const ssnInput = document.getElementById('employeeSsn');
     const errorElement = document.getElementById('employeeLoginError');
     const spinner = document.getElementById('employeeSpinner');
-    const buttonText = document.querySelector('#employeeLoginForm .login-text');
+    const buttonText = document.querySelector('.login-text');
+
+    // Reset UI
+    errorElement.textContent = '';
+    spinner.classList.remove('d-none');
+    buttonText.classList.add('d-none');
 
     try {
-      // Show loading state
-      errorElement.textContent = '';
-      spinner.classList.remove('d-none');
-      buttonText.classList.add('d-none');
+      const cleanSSN = ssnInput.value.replace(/\D/g, '');
 
-      // Validate SSN format (basic check for 9 digits)
-      if (!/^\d{9}$/.test(ssn)) {
-        throw new Error('Please enter a valid 9-digit SSN');
+      // Client-side validation
+      if (cleanSSN.length !== 9) {
+        throw new Error('Please enter exactly 9 digits');
       }
 
-      // Simplified authentication - just check if SSN and password match
-      if (ssn !== password) {
-        throw new Error('SSN and password must match');
+      const response = await this.apiService.employeeLogin(cleanSSN);
+
+      if (!response.success) {
+        throw new Error(response.message || 'Authentication failed');
       }
 
-      // Create mock user data
-      const user = {
-        id: ssn,
-        ssn: ssn,
-        role: ssn === '111223333' ? 'Manager' : 'Receptionist',
-        firstName: 'Employee',
-        lastName: `#${ssn.substring(5)}`,
-        hotelId: 1
-      };
-
-      // Create mock token
-      const token = `mock-token-${ssn}-${Date.now()}`;
-
-      // Persist the authentication
-      this.authService.setAuthToken(token);
-      this.authService.setUser(user);
-
-      // Check if router exists before calling updateNavigation
-      if (this.router && typeof this.router.updateNavigation === 'function') {
-        this.router.updateNavigation(user);
-      } else {
-        console.warn('Router or updateNavigation method not available');
-      }
-      
       // Redirect based on role
-      if (user.role === 'Manager') {
-        window.location.hash = '#employee-dashboard';
-      } else {
-        window.location.hash = '#create-renting';
-      }
+      const user = this.authService.getCurrentUser();
+      window.location.hash = user.role === 'Manager'
+        ? '#employee-dashboard'
+        : '#create-renting';
 
     } catch (error) {
-      console.error('Employee login failed:', error);
-      errorElement.textContent = error.message || 'Login failed. Please check your credentials.';
+      console.error('Login error:', error);
+      errorElement.textContent = error.message.includes('Server')
+        ? 'Server error. Please try again later.'
+        : error.message;
     } finally {
       spinner.classList.add('d-none');
       buttonText.classList.remove('d-none');

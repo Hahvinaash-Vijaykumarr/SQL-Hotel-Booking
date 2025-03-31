@@ -20,64 +20,31 @@ export class ApiService {
         }
 
         try {
+            console.log(`Making request to: ${url}`);
             const response = await fetch(url, {
                 ...options,
                 headers
             });
 
-            // Handle empty responses (204 No Content)
-            if (response.status === 204) {
-                return null;
-            }
-
-            // Check response content type
-            const contentType = response.headers.get('content-type');
-            const isJson = contentType && contentType.includes('application/json');
-
-            let responseData;
-            try {
-                responseData = isJson ? await response.json() : await response.text();
-            } catch (parseError) {
-                console.error('Failed to parse response:', parseError);
-                throw new Error('Invalid server response');
-            }
-
             if (!response.ok) {
-                const errorMessage = isJson
-                    ? (responseData.message || responseData.error || 'Request failed')
-                    : `Server returned ${response.status}`;
-
-                // Handle unauthorized errors
-                if (response.status === 401) {
-                    this.authService.clearToken();
-                    throw new Error('Session expired. Please login again.');
-                }
-
-                throw new Error(errorMessage);
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `Request failed with status ${response.status}`);
             }
 
-            return responseData;
+            return response.json();
         } catch (error) {
-            console.error('API request failed:', {
-                endpoint,
-                error: error.message,
-                url
-            });
+            console.error(`API request to ${url} failed:`, error);
             throw error;
         }
     }
 
-    // ==================== ROOM METHODS ====================
-    async getAvailableRooms(filters = {}) {
-        const query = new URLSearchParams(filters).toString();
-        return this.request(`/rooms/available?${query}`);
-    }
-
-    async getRoomDetails(roomId) {
-        return this.request(`/rooms/${roomId}`);
-    }
 
     // ==================== BOOKING METHODS ====================
+    // Add these methods to your ApiService class
+    async getBookingById(bookingId) {
+        return this.request(`/bookings/${bookingId}`);
+    }
+
     async createBooking(bookingData) {
         return this.request('/bookings', {
             method: 'POST',
@@ -94,6 +61,36 @@ export class ApiService {
             method: 'PUT'
         });
     }
+
+    // ==================== RENTING METHODS ====================
+    async getBookingById(bookingId) {
+        return this.request(`/bookings/${bookingId}`);
+    }
+
+    async createRentingFromBooking(bookingId, employeeId) {
+        return this.request('/rentings/from-booking', {
+            method: 'POST',
+            body: JSON.stringify({ bookingId, employeeId })
+        });
+    }
+
+    async createDirectRenting(rentingData) {
+        return this.request('/rentings', {
+            method: 'POST',
+            body: JSON.stringify(rentingData)
+        });
+    }
+
+    // ==================== ROOM METHODS ====================
+    async getAvailableRooms(filters = {}) {
+        const query = new URLSearchParams(filters).toString();
+        return this.request(`/rooms/available?${query}`);
+    }
+
+    async getRoomDetails(roomId) {
+        return this.request(`/rooms/${roomId}`);
+    }
+
 
     // ==================== CUSTOMER METHODS ====================
     async getCustomers() {
@@ -145,18 +142,19 @@ export class ApiService {
         });
     }
 
-    async employeeLogin(credentials) {
+    async employeeLogin(ssn) {
         try {
+            console.log('Attempting employee login with SSN:', ssn);
             const response = await this.request('/employee/login', {
                 method: 'POST',
-                body: JSON.stringify(credentials)
+                body: JSON.stringify({ ssn })
             });
-    
+
             if (response.token) {
                 this.authService.setAuthToken(response.token);
                 this.authService.setUser(response.user);
             }
-    
+
             return response;
         } catch (error) {
             console.error('Login failed:', error);
