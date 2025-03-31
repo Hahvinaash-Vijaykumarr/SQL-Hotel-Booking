@@ -74,11 +74,9 @@ export class ApiService {
         });
     }
 
-    async createDirectRenting(rentingData) {
-        return this.request('/rentings', {
-            method: 'POST',
-            body: JSON.stringify(rentingData)
-        });
+    // In your apiService.js or equivalent
+    createDirectRenting(formData) {
+        return this.post('/rentings/direct', formData);
     }
 
     // ==================== ROOM METHODS ====================

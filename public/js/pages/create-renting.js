@@ -41,22 +41,93 @@ export class CreateRentingPage {
                   
                   <div class="tab-pane fade" id="direct">
                     <form id="directRentingForm">
-                      <div class="mb-3">
-                        <label for="customerId" class="form-label">Customer ID</label>
-                        <input type="text" class="form-control" id="customerId" required>
+                      <h5 class="mb-4">Personal Information</h5>
+                      <div class="row mb-3">
+                        <div class="col-md-4">
+                          <label for="firstName" class="form-label">First Name*</label>
+                          <input type="text" class="form-control" id="firstName" required>
+                        </div>
+                        <div class="col-md-4">
+                          <label for="middleName" class="form-label">Middle Name</label>
+                          <input type="text" class="form-control" id="middleName">
+                        </div>
+                        <div class="col-md-4">
+                          <label for="lastName" class="form-label">Last Name*</label>
+                          <input type="text" class="form-control" id="lastName" required>
+                        </div>
                       </div>
+                      
+                      <h5 class="mb-4 mt-4">Address</h5>
                       <div class="mb-3">
-                        <label for="directRoomId" class="form-label">Room ID</label>
+                        <label for="streetAddress" class="form-label">Street Address*</label>
+                        <input type="text" class="form-control" id="streetAddress" required>
+                      </div>
+                      <div class="row mb-3">
+                        <div class="col-md-4">
+                          <label for="city" class="form-label">City*</label>
+                          <input type="text" class="form-control" id="city" required>
+                        </div>
+                        <div class="col-md-4">
+                          <label for="state" class="form-label">State*</label>
+                          <input type="text" class="form-control" id="state" required>
+                        </div>
+                        <div class="col-md-4">
+                          <label for="zipCode" class="form-label">Zip Code*</label>
+                          <input type="text" class="form-control" id="zipCode" required>
+                        </div>
+                      </div>
+                      
+                      <h5 class="mb-4 mt-4">Identification</h5>
+                      <div class="row mb-3">
+                        <div class="col-md-4">
+                          <label for="idType" class="form-label">ID Type*</label>
+                          <select class="form-select" id="idType" required>
+                            <option value="">Select ID Type</option>
+                            <option value="Driver License">Driver License</option>
+                            <option value="Passport">Passport</option>
+                            <option value="State ID">State ID</option>
+                            <option value="Military ID">Military ID</option>
+                          </select>
+                        </div>
+                        <div class="col-md-8">
+                          <label for="idNumber" class="form-label">ID Number*</label>
+                          <input type="text" class="form-control" id="idNumber" required>
+                        </div>
+                      </div>
+                      
+                      <h5 class="mb-4 mt-4">Payment Information</h5>
+                      <div class="mb-3">
+                        <label for="creditCardNumber" class="form-label">Credit Card Number*</label>
+                        <input type="text" class="form-control" id="creditCardNumber" 
+                               placeholder="1234 5678 9012 3456" required>
+                      </div>
+                      <div class="row mb-3">
+                        <div class="col-md-4">
+                          <label for="cvc" class="form-label">CVC*</label>
+                          <input type="text" class="form-control" id="cvc" required>
+                        </div>
+                        <div class="col-md-8">
+                          <label for="expirationDate" class="form-label">Expiration Date*</label>
+                          <input type="month" class="form-control" id="expirationDate" required>
+                        </div>
+                      </div>
+                      
+                      <h5 class="mb-4 mt-4">Renting Details</h5>
+                      <div class="mb-3">
+                        <label for="directRoomId" class="form-label">Room ID*</label>
                         <input type="text" class="form-control" id="directRoomId" required>
                       </div>
-                      <div class="mb-3">
-                        <label for="directCheckIn" class="form-label">Check-in Date</label>
-                        <input type="date" class="form-control" id="directCheckIn" required>
+                      <div class="row mb-3">
+                        <div class="col-md-6">
+                          <label for="directCheckIn" class="form-label">Check-in Date*</label>
+                          <input type="date" class="form-control" id="directCheckIn" required>
+                        </div>
+                        <div class="col-md-6">
+                          <label for="directCheckOut" class="form-label">Check-out Date*</label>
+                          <input type="date" class="form-control" id="directCheckOut" required>
+                        </div>
                       </div>
-                      <div class="mb-3">
-                        <label for="directCheckOut" class="form-label">Check-out Date</label>
-                        <input type="date" class="form-control" id="directCheckOut" required>
-                      </div>
+                      
                       <button type="submit" class="btn btn-primary">Create Renting</button>
                     </form>
                   </div>
@@ -146,35 +217,84 @@ export class CreateRentingPage {
 
   async handleDirectRenting() {
     const user = this.authService.getUser();
-    if (!user) {
-      alert('Please login first');
+    if (!user || !user.id) {
+      alert('Please login first with a valid employee account');
       window.location.hash = '#login';
       return;
     }
 
-    const customerId = document.getElementById('customerId').value.trim();
-    const roomId = document.getElementById('directRoomId').value.trim();
-    const checkInDate = document.getElementById('directCheckIn').value;
-    const checkOutDate = document.getElementById('directCheckOut').value;
+    // Collect all form data
+    const formData = {
+      personalInfo: {
+        firstName: document.getElementById('firstName').value.trim(),
+        middleName: document.getElementById('middleName').value.trim(),
+        lastName: document.getElementById('lastName').value.trim()
+      },
+      address: {
+        streetAddress: document.getElementById('streetAddress').value.trim(),
+        city: document.getElementById('city').value.trim(),
+        state: document.getElementById('state').value.trim(),
+        zipCode: document.getElementById('zipCode').value.trim()
+      },
+      identification: {
+        idType: document.getElementById('idType').value,
+        idNumber: document.getElementById('idNumber').value.trim()
+      },
+      payment: {
+        creditCardNumber: document.getElementById('creditCardNumber').value.trim(),
+        cvc: document.getElementById('cvc').value.trim(),
+        expirationDate: document.getElementById('expirationDate').value
+      },
+      rentingDetails: {
+        roomId: document.getElementById('directRoomId').value.trim(),
+        checkInDate: document.getElementById('directCheckIn').value,
+        checkOutDate: document.getElementById('directCheckOut').value
+      },
+      employeeId: user.id
+    };
 
-    if (!customerId || !roomId || !checkInDate || !checkOutDate) {
-      alert('Please fill all required fields');
+    // Validate required fields
+    if (!formData.personalInfo.firstName || !formData.personalInfo.lastName ||
+      !formData.address.streetAddress || !formData.address.city ||
+      !formData.address.state || !formData.address.zipCode ||
+      !formData.identification.idType || !formData.identification.idNumber ||
+      !formData.payment.creditCardNumber || !formData.payment.cvc ||
+      !formData.payment.expirationDate ||
+      !formData.rentingDetails.roomId || !formData.rentingDetails.checkInDate ||
+      !formData.rentingDetails.checkOutDate) {
+      alert('Please fill all required fields (marked with *)');
       return;
     }
 
     try {
-      await this.apiService.createDirectRenting({
-        customerId,
-        roomId,
-        checkInDate,
-        checkOutDate,
-        employeeId: user.id
-      });
+      const response = await this.apiService.createDirectRenting(formData);
 
-      alert('Renting created successfully');
-      window.location.hash = '#employee-dashboard';
+      if (response.rentingId) {
+        alert(`Renting #${response.rentingId} created successfully`);
+        window.location.hash = '#employee-dashboard';
+      } else {
+        throw new Error('Unexpected response from server');
+      }
     } catch (error) {
-      alert(error.message || 'Failed to create direct renting');
+      console.error('Direct renting creation failed:', error);
+
+      let errorMessage = 'Failed to create direct renting';
+      if (error.response) {
+        const serverError = await error.response.json();
+        errorMessage = serverError.message || errorMessage;
+
+        if (serverError.details) {
+          if (serverError.details.includes('No employee with SSN')) {
+            errorMessage = 'Your employee account is not properly registered';
+          } else if (serverError.details.roomExists === false) {
+            errorMessage = 'Room record not found';
+          } else if (serverError.details.roomAvailable === false) {
+            errorMessage = 'Room not available for the selected dates';
+          }
+        }
+      }
+
+      alert(`Error: ${errorMessage}`);
     }
   }
 }

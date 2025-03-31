@@ -103,6 +103,47 @@ export class CustomerInfoPage {
                                         <div class="error-message" id="idNumberError"></div>
                                     </div>
                                 </div>
+
+                                <h5 class="mb-3 mt-4">Payment Information</h5>
+                                <div class="row mb-3">
+                                    <div class="col-md-8">
+                                        <label for="creditCardNumber" class="form-label">Credit Card Number*</label>
+                                        <input type="text" 
+                                            class="form-control" 
+                                            id="creditCardNumber" 
+                                            inputmode="numeric"
+                                            data-pattern="\d{16}"
+                                            maxlength="19"
+                                            placeholder="1234 5678 9012 3456"
+                                            required>
+                                        <div class="error-message" id="creditCardNumberError"></div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label for="creditCardCVC" class="form-label">CVC*</label>
+                                        <input type="text" 
+                                            class="form-control" 
+                                            id="creditCardCVC" 
+                                            inputmode="numeric"
+                                            pattern="[0-9]*"
+                                            maxlength="4"
+                                            placeholder="123"
+                                            required>
+                                        <div class="error-message" id="creditCardCVCError"></div>
+                                    </div>
+                                </div>
+                                <div class="row mb-4">
+                                    <div class="col-md-6">
+                                        <label for="creditCardExpiration" class="form-label">Expiration Date*</label>
+                                        <input type="text" 
+                                            class="form-control" 
+                                            id="creditCardExpiration" 
+                                            placeholder="MM/YYYY"
+                                            pattern="(0[1-9]|1[0-2])\/(2[3-9]|[3-9][0-9])"  // Updated pattern
+                                            maxlength="7"
+                                            required>
+                                        <div class="error-message" id="creditCardExpirationError"></div>
+                                    </div>
+                                </div>
                                 
                                 <div class="d-grid gap-2">
                                     <button type="submit" class="btn btn-primary btn-lg">
@@ -125,6 +166,43 @@ export class CustomerInfoPage {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             await this.handleCustomerRegistration();
+        });
+
+        // Credit card number formatting and validation
+        const ccInput = document.getElementById('creditCardNumber');
+        if (ccInput) {
+            ccInput.addEventListener('input', function (e) {
+                // Remove all non-digits
+                let value = this.value.replace(/\D/g, '');
+                // Limit to 16 digits
+                if (value.length > 16) value = value.substring(0, 16);
+                // Add space every 4 digits
+                this.value = value.replace(/(\d{4})(?=\d)/g, '$1 ');
+
+                // Custom validation
+                const rawValue = value.replace(/\s/g, '');
+                if (rawValue.length === 16) {
+                    this.setCustomValidity('');
+                } else {
+                    this.setCustomValidity('Please enter 16 digits');
+                }
+            });
+        }
+
+        // Expiration date formatting
+        document.getElementById('creditCardExpiration')?.addEventListener('input', function (e) {
+            // Remove all non-digits and non-slashes
+            let value = this.value.replace(/[^\d\/]/g, '');
+
+            // Auto-insert slash after 2 digits
+            if (value.length === 2 && !this.value.includes('/')) {
+                value = value + '/';
+            }
+
+            // Limit to 7 characters (MM/YYYY)
+            if (value.length > 7) value = value.substring(0, 7);
+
+            this.value = value;
         });
     }
 
@@ -149,7 +227,51 @@ export class CustomerInfoPage {
                 Processing...
             `;
 
-            // Collect form data
+            // Collect and validate credit card info
+            const creditCardNumber = document.getElementById('creditCardNumber').value.replace(/\D/g, '');
+            const creditCardExpiration = document.getElementById('creditCardExpiration').value;
+            const creditCardCVC = document.getElementById('creditCardCVC').value;
+
+            // Validate credit card number (exactly 16 digits after removing spaces)
+            if (creditCardNumber.length !== 16) {
+                const errorEl = document.getElementById('creditCardNumberError');
+                errorEl.textContent = 'Please enter a valid 16-digit credit card number';
+                errorEl.style.display = 'block';
+                throw new Error('Invalid credit card number');
+            }
+
+            // Validate expiration date (MM/YYYY format)
+            // Replace the expiration date validation with this:
+            const [month, year] = creditCardExpiration.split('/');
+            const currentYear = new Date().getFullYear().toString().slice(-2);
+            const currentMonth = new Date().getMonth() + 1;
+
+            if (!/^(0[1-9]|1[0-2])\/(2[3-9]|[3-9][0-9])$/.test(creditCardExpiration)) {
+                const errorEl = document.getElementById('creditCardExpirationError');
+                errorEl.textContent = 'Please enter a valid future expiration date (MM/YY)';
+                errorEl.style.display = 'block';
+                throw new Error('Invalid expiration date');
+            }
+
+            // Additional validation to ensure date is in the future
+            if (parseInt(year) < parseInt(currentYear) ||
+                (parseInt(year) === parseInt(currentYear) && parseInt(month) < currentMonth)) {
+                const errorEl = document.getElementById('creditCardExpirationError');
+                errorEl.textContent = 'Please enter a future expiration date';
+                errorEl.style.display = 'block';
+                throw new Error('Expired card');
+            }
+
+            // Validate CVC (3-4 digits)
+            // Replace the CVC validation with this:
+            if (!/^\d{3,4}$/.test(creditCardCVC)) {
+                const errorEl = document.getElementById('creditCardCVCError');
+                errorEl.textContent = 'Please enter a valid 3 or 4 digit CVC';
+                errorEl.style.display = 'block';
+                throw new Error('Invalid CVC');
+            }
+
+            // Collect all form data
             const customerData = {
                 firstName: document.getElementById('firstName').value.trim(),
                 middleName: document.getElementById('middleName').value.trim(),
@@ -159,13 +281,13 @@ export class CustomerInfoPage {
                 state: document.getElementById('state').value.trim(),
                 zipCode: document.getElementById('zipCode').value.trim(),
                 idType: document.getElementById('idType').value,
-                idNumber: document.getElementById('idNumber').value.trim()
+                idNumber: document.getElementById('idNumber').value.trim(),
+                creditCardNumber: creditCardNumber,
+                creditCardExpiration: creditCardExpiration,
+                creditCardCVC: creditCardCVC
             };
 
-            // Frontend validation (keep your existing validation logic)
-
             // Step 1: Create customer
-            // In CustomerInfoPage.handleCustomerRegistration()
             const customerResponse = await this.apiService.createCustomer(customerData);
             if (customerResponse.token) {
                 this.apiService.authService.setToken(customerResponse.token);
@@ -175,13 +297,13 @@ export class CustomerInfoPage {
                 });
             }
 
-            // Step 2: Create booking with all required information
+            // Step 2: Create booking
             const bookingData = {
-                customerId: customerResponse.customerId,  // Use customerId from response
+                customerId: customerResponse.customerId,
                 roomId: this.roomId,
                 checkInDate: this.bookingDates.checkInDate,
                 checkOutDate: this.bookingDates.checkOutDate,
-                hotelId: this.hotelId // Make sure this is available in your class
+                hotelId: this.hotelId
             };
 
             const bookingResponse = await this.apiService.createBooking(bookingData);
@@ -204,12 +326,8 @@ export class CustomerInfoPage {
                 checkOutDate: this.bookingDates.checkOutDate
             }));
 
-            // Replace the setTimeout in your handleCustomerRegistration method with:
             setTimeout(() => {
-                // Clear booking dates from session storage
                 sessionStorage.removeItem('bookingDates');
-
-                // Store the booking confirmation more permanently
                 localStorage.setItem('latestBooking', JSON.stringify({
                     bookingId: bookingResponse.bookingId,
                     customerId: customerResponse.customerId,
@@ -218,8 +336,6 @@ export class CustomerInfoPage {
                     checkOutDate: this.bookingDates.checkOutDate,
                     hotelId: this.hotelId
                 }));
-
-                // Redirect to booking summary page
                 window.location.hash = `booking-summary?bookingId=${bookingResponse.bookingId}&fresh=true`;
             }, 1500);
 

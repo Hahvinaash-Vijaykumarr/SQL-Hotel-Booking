@@ -11,8 +11,7 @@ router.post('/', async (req, res) => {
     }
 
     try {
-        const { firstName, middleName, lastName, state, city, street, zipCode, idType, idNumber } = req.body;
-
+        const { firstName, middleName, lastName, state, city, street, zipCode, idType, idNumber, creditCardNumber, creditCardExpiration, creditCardCVC } = req.body;
         const requiredFields = {
             firstName: 'First name is required',
             lastName: 'Last name is required',
@@ -21,7 +20,10 @@ router.post('/', async (req, res) => {
             state: 'State is required',
             zipCode: 'Zip code is required',
             idType: 'ID type is required',
-            idNumber: 'ID number is required'
+            idNumber: 'ID number is required',
+            creditCardNumber: 'Credit card number is required',
+            creditCardExpiration: 'Credit card expiration is required',
+            creditCardCVC: 'Credit card CVC is required'
         };
 
         const missingFields = Object.entries(requiredFields)
@@ -42,8 +44,9 @@ router.post('/', async (req, res) => {
 
             const [result] = await connection.query(
                 `INSERT INTO customer 
-                (FirstName, MiddleName, LastName, State, City, Street, ZipCode, RegistrationDate, IDType, IDNumber) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                (FirstName, MiddleName, LastName, State, City, Street, ZipCode, 
+     RegistrationDate, IDType, IDNumber, CreditCardNumber, CreditCardExpiration, CreditCardCVC)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     firstName,
                     middleName || null,
@@ -54,7 +57,10 @@ router.post('/', async (req, res) => {
                     zipCode,
                     new Date().toISOString().split('T')[0],
                     idType,
-                    idNumber
+                    idNumber,
+                    creditCardNumber,
+                    creditCardExpiration,
+                    creditCardCVC
                 ]
             );
 

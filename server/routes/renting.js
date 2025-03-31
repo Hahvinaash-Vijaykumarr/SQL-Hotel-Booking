@@ -139,11 +139,31 @@ router.post('/from-booking', async (req, res) => {
 
 // Create direct renting (without booking)
 router.post('/direct', async (req, res) => {
-    const { customerId, roomId, checkInDate, checkOutDate, employeeId } = req.body;
+    const {
+        personalInfo,
+        address,
+        identification,
+        payment,
+        rentingDetails,
+        employeeId
+    } = req.body;
+
+    const connection = await pool.getConnection();
+    await connection.beginTransaction();
 
     try {
-        // Check room availability
-        const [availability] = await pool.query(`
+        // 1. Verify employee exists
+        const [employee] = await connection.query('SELECT SSN FROM employee WHERE SSN = ?', [employeeId]);
+        if (employee.length === 0) {
+            await connection.rollback();
+            return res.status(400).json({
+                message: 'Employee not found',
+                details: `No employee with SSN ${employeeId} exists`
+            });
+        }
+
+        // 2. Check room availability and get hotel ID
+        const [roomAvailability] = await connection.query(`
             SELECT r.*, h.HotelID FROM room r
             JOIN hotel h ON r.HotelID = h.HotelID
             WHERE r.RoomID = ? 
@@ -168,27 +188,103 @@ router.post('/direct', async (req, res) => {
                     (rg.CheckOutDate BETWEEN ? AND ?)
                 )
             )
-        `, [roomId, ...Array(12).fill([checkOutDate, checkInDate]).flat()]);
+        `, [rentingDetails.roomId, ...Array(12).fill([rentingDetails.checkOutDate, rentingDetails.checkInDate]).flat()]);
 
-        if (availability.length === 0) {
-            return res.status(400).json({ message: 'Room not available for selected dates' });
+        if (roomAvailability.length === 0) {
+            await connection.rollback();
+            return res.status(400).json({
+                message: 'Room not available for selected dates',
+                details: { roomAvailable: false }
+            });
         }
 
-        // Create renting
-        const [result] = await pool.query(`
-            INSERT INTO renting (CustomerID, HotelID, RoomID, CheckInDate, CheckOutDate, EmployeeID, Status)
-            VALUES (?, ?, ?, ?, ?, ?, 'Active')
-        `, [customerId, availability[0].HotelID, roomId, checkInDate, checkOutDate, employeeId]);
+        // 3. Create customer record
+        const [customerResult] = await connection.query(`
+            INSERT INTO customer (
+                FirstName, 
+                MiddleName, 
+                LastName, 
+                StreetAddress, 
+                City, 
+                State, 
+                ZipCode, 
+                IDType, 
+                IDNumber,
+                RegistrationDate
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURDATE())
+        `, [
+            personalInfo.firstName,
+            personalInfo.middleName || null,
+            personalInfo.lastName,
+            address.streetAddress,
+            address.city,
+            address.state,
+            address.zipCode,
+            identification.idType,
+            identification.idNumber
+        ]);
+
+        const customerId = customerResult.insertId;
+
+        // 4. Create renting record
+        const [rentingResult] = await connection.query(`
+            INSERT INTO renting (
+                CustomerID, 
+                HotelID, 
+                RoomID, 
+                CheckInDate, 
+                CheckOutDate, 
+                EmployeeID,
+                Status,
+                RentingDate
+            ) VALUES (?, ?, ?, ?, ?, ?, 'Active', CURDATE())
+        `, [
+            customerId,
+            roomAvailability[0].HotelID,
+            rentingDetails.roomId,
+            rentingDetails.checkInDate,
+            rentingDetails.checkOutDate,
+            employeeId
+        ]);
+
+        const rentingId = rentingResult.insertId;
+
+        // 5. Record payment (basic info - in real app you'd use a payment processor)
+        await connection.query(`
+            INSERT INTO payment (
+                RentingID, 
+                Amount, 
+                PaymentMethod, 
+                EmployeeID, 
+                PaymentDate,
+                LastFourDigits
+            ) VALUES (?, ?, ?, ?, CURDATE(), ?)
+        `, [
+            rentingId,
+            roomAvailability[0].Price *
+            Math.ceil((new Date(rentingDetails.checkOutDate) - new Date(rentingDetails.checkInDate)) / (1000 * 60 * 60 * 24)),
+            'Credit Card',
+            employeeId,
+            payment.creditCardNumber.slice(-4)
+        ]);
+
+        await connection.commit();
+        connection.release();
 
         res.status(201).json({
-            rentingId: result.insertId,
+            rentingId,
+            customerId,
             message: 'Direct renting created successfully'
         });
     } catch (err) {
-        console.error(err);
+        await connection.rollback();
+        connection.release();
+        console.error('Error in direct renting:', err);
         res.status(500).json({
             message: 'Server error',
-            error: err.message
+            error: err.message,
+            code: err.code,
+            sql: err.sql
         });
     }
 });
