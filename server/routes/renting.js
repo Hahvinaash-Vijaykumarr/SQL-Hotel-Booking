@@ -16,11 +16,10 @@ router.post('/from-booking', async (req, res) => {
             });
         }
 
-        // Get complete booking details
+        // Get complete booking details - UPDATED TO MATCH YOUR SCHEMA
         const [booking] = await pool.query(`
-            SELECT b.*, c.ID AS CustomerID, r.HotelID 
+            SELECT b.*, r.HotelID 
             FROM booking b
-            JOIN customer c ON b.CustomerSSN = c.ID
             JOIN room r ON b.RoomID = r.RoomID
             WHERE b.BookingID = ?
         `, [bookingId]);
@@ -78,11 +77,12 @@ router.post('/from-booking', async (req, res) => {
         }
 
         // Start transaction
-        await pool.query('START TRANSACTION');
+        const connection = await pool.getConnection();
+        await connection.beginTransaction();
 
         try {
             // Create renting with all required fields
-            const [rentingResult] = await pool.query(`
+            const [rentingResult] = await connection.query(`
                 INSERT INTO renting (
                     CustomerID, 
                     HotelID, 
@@ -90,35 +90,36 @@ router.post('/from-booking', async (req, res) => {
                     CheckInDate, 
                     CheckOutDate, 
                     EmployeeID,
-                    TotalPrice
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    Status
+                ) VALUES (?, ?, ?, ?, ?, ?, 'Active')
             `, [
                 booking[0].CustomerID,
                 booking[0].HotelID,
                 booking[0].RoomID,
                 booking[0].CheckInDate,
                 booking[0].CheckOutDate,
-                employeeId,
-                booking[0].TotalPrice || 0  // Default to 0 if not specified
+                employeeId
             ]);
 
             // Update booking status
-            await pool.query('UPDATE booking SET Status = "Completed" WHERE BookingID = ?', [bookingId]);
+            await connection.query('UPDATE booking SET Status = "Completed" WHERE BookingID = ?', [bookingId]);
 
             // Record transformation
-            await pool.query(`
+            await connection.query(`
                 INSERT INTO transform (RentingID, BookingID, CheckInDate, EmployeeID)
                 VALUES (?, ?, ?, ?)
             `, [rentingResult.insertId, bookingId, booking[0].CheckInDate, employeeId]);
 
-            await pool.query('COMMIT');
+            await connection.commit();
+            connection.release();
 
             res.status(201).json({
                 rentingId: rentingResult.insertId,
                 message: 'Renting created successfully'
             });
         } catch (err) {
-            await pool.query('ROLLBACK');
+            await connection.rollback();
+            connection.release();
             console.error('Transaction error:', err);
             res.status(500).json({
                 message: 'Failed to create renting',
@@ -137,37 +138,37 @@ router.post('/from-booking', async (req, res) => {
 });
 
 // Create direct renting (without booking)
-router.post('/rentings/from-booking', async (req, res) => {
+router.post('/direct', async (req, res) => {
     const { customerId, roomId, checkInDate, checkOutDate, employeeId } = req.body;
 
     try {
         // Check room availability
         const [availability] = await pool.query(`
-      SELECT r.*, h.HotelID FROM room r
-      JOIN hotel h ON r.HotelID = h.HotelID
-      WHERE r.RoomID = ? 
-      AND r.Damaged = 0
-      AND NOT EXISTS (
-        SELECT 1 FROM booking b 
-        WHERE b.RoomID = r.RoomID 
-        AND b.Status = 'Confirmed'
-        AND (
-          (b.CheckInDate <= ? AND b.CheckOutDate >= ?) OR
-          (b.CheckInDate BETWEEN ? AND ?) OR
-          (b.CheckOutDate BETWEEN ? AND ?)
-        )
-      )
-      AND NOT EXISTS (
-        SELECT 1 FROM renting rg 
-        WHERE rg.RoomID = r.RoomID
-        AND rg.Status = 'Active'
-        AND (
-          (rg.CheckInDate <= ? AND rg.CheckOutDate >= ?) OR
-          (rg.CheckInDate BETWEEN ? AND ?) OR
-          (rg.CheckOutDate BETWEEN ? AND ?)
-        )
-      )
-    `, [roomId, ...Array(12).fill([checkOutDate, checkInDate]).flat()]);
+            SELECT r.*, h.HotelID FROM room r
+            JOIN hotel h ON r.HotelID = h.HotelID
+            WHERE r.RoomID = ? 
+            AND r.Damaged = 0
+            AND NOT EXISTS (
+                SELECT 1 FROM booking b 
+                WHERE b.RoomID = r.RoomID 
+                AND b.Status = 'Confirmed'
+                AND (
+                    (b.CheckInDate <= ? AND b.CheckOutDate >= ?) OR
+                    (b.CheckInDate BETWEEN ? AND ?) OR
+                    (b.CheckOutDate BETWEEN ? AND ?)
+                )
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM renting rg 
+                WHERE rg.RoomID = r.RoomID
+                AND rg.Status = 'Active'
+                AND (
+                    (rg.CheckInDate <= ? AND rg.CheckOutDate >= ?) OR
+                    (rg.CheckInDate BETWEEN ? AND ?) OR
+                    (rg.CheckOutDate BETWEEN ? AND ?)
+                )
+            )
+        `, [roomId, ...Array(12).fill([checkOutDate, checkInDate]).flat()]);
 
         if (availability.length === 0) {
             return res.status(400).json({ message: 'Room not available for selected dates' });
@@ -175,14 +176,20 @@ router.post('/rentings/from-booking', async (req, res) => {
 
         // Create renting
         const [result] = await pool.query(`
-      INSERT INTO renting (CustomerID, HotelID, RoomID, CheckInDate, CheckOutDate, EmployeeID)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, [customerId, availability[0].HotelID, roomId, checkInDate, checkOutDate, employeeId]);
+            INSERT INTO renting (CustomerID, HotelID, RoomID, CheckInDate, CheckOutDate, EmployeeID, Status)
+            VALUES (?, ?, ?, ?, ?, ?, 'Active')
+        `, [customerId, availability[0].HotelID, roomId, checkInDate, checkOutDate, employeeId]);
 
-        res.status(201).json({ rentingId: result.insertId });
+        res.status(201).json({
+            rentingId: result.insertId,
+            message: 'Direct renting created successfully'
+        });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({
+            message: 'Server error',
+            error: err.message
+        });
     }
 });
 
@@ -190,19 +197,22 @@ router.post('/rentings/from-booking', async (req, res) => {
 router.get('/customer/:id', async (req, res) => {
     try {
         const [rentings] = await pool.query(`
-      SELECT r.*, rm.RoomNumber, h.HotelName, h.City, h.State,
-             (SELECT SUM(Amount) FROM payment p WHERE p.RentingID = r.RentingID) AS AmountPaid
-      FROM renting r
-      JOIN room rm ON r.RoomID = rm.RoomID
-      JOIN hotel h ON r.HotelID = h.HotelID
-      WHERE r.CustomerID = ?
-      ORDER BY r.CheckInDate DESC
-    `, [req.params.id]);
+            SELECT r.*, rm.RoomNumber, h.HotelName, h.City, h.State,
+                   (SELECT SUM(Amount) FROM payment p WHERE p.RentingID = r.RentingID) AS AmountPaid
+            FROM renting r
+            JOIN room rm ON r.RoomID = rm.RoomID
+            JOIN hotel h ON r.HotelID = h.HotelID
+            WHERE r.CustomerID = ?
+            ORDER BY r.CheckInDate DESC
+        `, [req.params.id]);
 
         res.json(rentings);
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({
+            message: 'Server error',
+            error: err.message
+        });
     }
 });
 
@@ -213,7 +223,10 @@ router.put('/:id/complete', async (req, res) => {
         res.json({ message: 'Renting completed successfully' });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({
+            message: 'Server error',
+            error: err.message
+        });
     }
 });
 
@@ -222,15 +235,27 @@ router.post('/:id/payment', async (req, res) => {
     const { amount, method, employeeId, receiptNumber } = req.body;
 
     try {
-        const [result] = await pool.query(`
-      INSERT INTO payment (RentingID, Amount, PaymentMethod, EmployeeID, ReceiptNumber)
-      VALUES (?, ?, ?, ?, ?)
-    `, [req.params.id, amount, method, employeeId, receiptNumber]);
+        // Verify employee exists
+        const [employee] = await pool.query('SELECT 1 FROM employee WHERE SSN = ?', [employeeId]);
+        if (employee.length === 0) {
+            return res.status(400).json({ message: 'Employee not found' });
+        }
 
-        res.status(201).json({ paymentId: result.insertId });
+        const [result] = await pool.query(`
+            INSERT INTO payment (RentingID, Amount, PaymentMethod, EmployeeID, ReceiptNumber)
+            VALUES (?, ?, ?, ?, ?)
+        `, [req.params.id, amount, method, employeeId, receiptNumber]);
+
+        res.status(201).json({
+            paymentId: result.insertId,
+            message: 'Payment recorded successfully'
+        });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({
+            message: 'Server error',
+            error: err.message
+        });
     }
 });
 
@@ -238,17 +263,20 @@ router.post('/:id/payment', async (req, res) => {
 router.get('/:id/payments', async (req, res) => {
     try {
         const [payments] = await pool.query(`
-      SELECT p.*, CONCAT(e.FirstName, ' ', e.LastName) AS EmployeeName
-      FROM payment p
-      JOIN employee e ON p.EmployeeID = e.SSN
-      WHERE p.RentingID = ?
-      ORDER BY p.PaymentDate DESC
-    `, [req.params.id]);
+            SELECT p.*, CONCAT(e.FirstName, ' ', e.LastName) AS EmployeeName
+            FROM payment p
+            JOIN employee e ON p.EmployeeID = e.SSN
+            WHERE p.RentingID = ?
+            ORDER BY p.PaymentDate DESC
+        `, [req.params.id]);
 
         res.json(payments);
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({
+            message: 'Server error',
+            error: err.message
+        });
     }
 });
 
