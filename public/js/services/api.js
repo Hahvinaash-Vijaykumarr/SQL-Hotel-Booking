@@ -38,9 +38,7 @@ export class ApiService {
         }
     }
 
-
     // ==================== BOOKING METHODS ====================
-    // Add these methods to your ApiService class
     async getBookingById(bookingId) {
         return this.request(`/bookings/${bookingId}`);
     }
@@ -63,10 +61,6 @@ export class ApiService {
     }
 
     // ==================== RENTING METHODS ====================
-    async getBookingById(bookingId) {
-        return this.request(`/bookings/${bookingId}`);
-    }
-
     async createRentingFromBooking(bookingId, employeeId) {
         return this.request('/rentings/from-booking', {
             method: 'POST',
@@ -74,9 +68,11 @@ export class ApiService {
         });
     }
 
-    // In your apiService.js or equivalent
-    createDirectRenting(formData) {
-        return this.post('/rentings/direct', formData);
+    async createDirectRenting(formData) {
+        return this.request('/rentings/direct', {
+            method: 'POST',
+            body: JSON.stringify(formData)
+        });
     }
 
     // ==================== ROOM METHODS ====================
@@ -88,7 +84,6 @@ export class ApiService {
     async getRoomDetails(roomId) {
         return this.request(`/rooms/${roomId}`);
     }
-
 
     // ==================== CUSTOMER METHODS ====================
     async getCustomers() {

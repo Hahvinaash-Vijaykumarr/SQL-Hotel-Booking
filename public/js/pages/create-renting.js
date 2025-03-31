@@ -58,23 +58,23 @@ export class CreateRentingPage {
                       </div>
                       
                       <h5 class="mb-4 mt-4">Address</h5>
-                      <div class="mb-3">
-                        <label for="streetAddress" class="form-label">Street Address*</label>
-                        <input type="text" class="form-control" id="streetAddress" required>
-                      </div>
                       <div class="row mb-3">
-                        <div class="col-md-4">
-                          <label for="city" class="form-label">City*</label>
-                          <input type="text" class="form-control" id="city" required>
-                        </div>
                         <div class="col-md-4">
                           <label for="state" class="form-label">State*</label>
                           <input type="text" class="form-control" id="state" required>
                         </div>
                         <div class="col-md-4">
-                          <label for="zipCode" class="form-label">Zip Code*</label>
-                          <input type="text" class="form-control" id="zipCode" required>
+                          <label for="city" class="form-label">City*</label>
+                          <input type="text" class="form-control" id="city" required>
                         </div>
+                        <div class="col-md-4">
+                          <label for="street" class="form-label">Street*</label>
+                          <input type="text" class="form-control" id="street" required>
+                        </div>
+                      </div>
+                      <div class="mb-3">
+                        <label for="zipCode" class="form-label">Zip Code*</label>
+                        <input type="text" class="form-control" id="zipCode" required>
                       </div>
                       
                       <h5 class="mb-4 mt-4">Identification</h5>
@@ -87,6 +87,8 @@ export class CreateRentingPage {
                             <option value="Passport">Passport</option>
                             <option value="State ID">State ID</option>
                             <option value="Military ID">Military ID</option>
+                            <option value="SSN">SSN</option>
+                            <option value="Other">Other</option>
                           </select>
                         </div>
                         <div class="col-md-8">
@@ -103,12 +105,12 @@ export class CreateRentingPage {
                       </div>
                       <div class="row mb-3">
                         <div class="col-md-4">
-                          <label for="cvc" class="form-label">CVC*</label>
-                          <input type="text" class="form-control" id="cvc" required>
+                          <label for="creditCardExpiration" class="form-label">Expiration Date*</label>
+                          <input type="month" class="form-control" id="creditCardExpiration" required>
                         </div>
-                        <div class="col-md-8">
-                          <label for="expirationDate" class="form-label">Expiration Date*</label>
-                          <input type="month" class="form-control" id="expirationDate" required>
+                        <div class="col-md-4">
+                          <label for="creditCardCVC" class="form-label">CVC*</label>
+                          <input type="text" class="form-control" id="creditCardCVC" required maxlength="4">
                         </div>
                       </div>
                       
@@ -188,7 +190,6 @@ export class CreateRentingPage {
 
       let errorMessage = 'Failed to create renting';
       if (error.response) {
-        // Handle structured error responses from backend
         const serverError = await error.response.json();
         errorMessage = serverError.message || errorMessage;
 
@@ -231,9 +232,9 @@ export class CreateRentingPage {
         lastName: document.getElementById('lastName').value.trim()
       },
       address: {
-        streetAddress: document.getElementById('streetAddress').value.trim(),
-        city: document.getElementById('city').value.trim(),
         state: document.getElementById('state').value.trim(),
+        city: document.getElementById('city').value.trim(),
+        street: document.getElementById('street').value.trim(),
         zipCode: document.getElementById('zipCode').value.trim()
       },
       identification: {
@@ -242,8 +243,8 @@ export class CreateRentingPage {
       },
       payment: {
         creditCardNumber: document.getElementById('creditCardNumber').value.trim(),
-        cvc: document.getElementById('cvc').value.trim(),
-        expirationDate: document.getElementById('expirationDate').value
+        creditCardExpiration: document.getElementById('creditCardExpiration').value,
+        creditCardCVC: document.getElementById('creditCardCVC').value.trim()
       },
       rentingDetails: {
         roomId: document.getElementById('directRoomId').value.trim(),
@@ -255,11 +256,11 @@ export class CreateRentingPage {
 
     // Validate required fields
     if (!formData.personalInfo.firstName || !formData.personalInfo.lastName ||
-      !formData.address.streetAddress || !formData.address.city ||
-      !formData.address.state || !formData.address.zipCode ||
+      !formData.address.state || !formData.address.city ||
+      !formData.address.street || !formData.address.zipCode ||
       !formData.identification.idType || !formData.identification.idNumber ||
-      !formData.payment.creditCardNumber || !formData.payment.cvc ||
-      !formData.payment.expirationDate ||
+      !formData.payment.creditCardNumber || !formData.payment.creditCardExpiration ||
+      !formData.payment.creditCardCVC ||
       !formData.rentingDetails.roomId || !formData.rentingDetails.checkInDate ||
       !formData.rentingDetails.checkOutDate) {
       alert('Please fill all required fields (marked with *)');

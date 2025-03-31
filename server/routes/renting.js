@@ -137,7 +137,6 @@ router.post('/from-booking', async (req, res) => {
     }
 });
 
-// Create direct renting (without booking)
 router.post('/direct', async (req, res) => {
     const {
         personalInfo,
@@ -162,7 +161,7 @@ router.post('/direct', async (req, res) => {
             });
         }
 
-        // 2. Check room availability and get hotel ID
+        // 2. Check room availability and get hotel ID + price
         const [roomAvailability] = await connection.query(`
             SELECT r.*, h.HotelID FROM room r
             JOIN hotel h ON r.HotelID = h.HotelID
@@ -198,35 +197,48 @@ router.post('/direct', async (req, res) => {
             });
         }
 
-        // 3. Create customer record
+        // Calculate total price
+        const nights = Math.ceil(
+            (new Date(rentingDetails.checkOutDate) - new Date(rentingDetails.checkInDate))
+            / (1000 * 60 * 60 * 24)
+        );
+        const totalPrice = roomAvailability[0].Price * nights;
+
+        // 3. Create customer record with payment information
         const [customerResult] = await connection.query(`
             INSERT INTO customer (
                 FirstName, 
                 MiddleName, 
                 LastName, 
-                StreetAddress, 
-                City, 
                 State, 
+                City, 
+                Street, 
                 ZipCode, 
+                RegistrationDate, 
                 IDType, 
-                IDNumber,
-                RegistrationDate
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURDATE())
+                IDNumber, 
+                CreditCardNumber, 
+                CreditCardExpiration, 
+                CreditCardCVC
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE(), ?, ?, ?, ?, ?)
         `, [
             personalInfo.firstName,
             personalInfo.middleName || null,
             personalInfo.lastName,
-            address.streetAddress,
-            address.city,
             address.state,
+            address.city,
+            address.street,
             address.zipCode,
             identification.idType,
-            identification.idNumber
+            identification.idNumber,
+            payment.creditCardNumber,
+            payment.creditCardExpiration,
+            payment.creditCardCVC
         ]);
 
         const customerId = customerResult.insertId;
 
-        // 4. Create renting record
+        // 4. Create renting record (using only existing columns)
         const [rentingResult] = await connection.query(`
             INSERT INTO renting (
                 CustomerID, 
@@ -236,43 +248,24 @@ router.post('/direct', async (req, res) => {
                 CheckOutDate, 
                 EmployeeID,
                 Status,
-                RentingDate
-            ) VALUES (?, ?, ?, ?, ?, ?, 'Active', CURDATE())
+                RentingDate,
+                TotalPrice
+            ) VALUES (?, ?, ?, ?, ?, ?, 'Active', NOW(), ?)
         `, [
             customerId,
             roomAvailability[0].HotelID,
             rentingDetails.roomId,
             rentingDetails.checkInDate,
             rentingDetails.checkOutDate,
-            employeeId
-        ]);
-
-        const rentingId = rentingResult.insertId;
-
-        // 5. Record payment (basic info - in real app you'd use a payment processor)
-        await connection.query(`
-            INSERT INTO payment (
-                RentingID, 
-                Amount, 
-                PaymentMethod, 
-                EmployeeID, 
-                PaymentDate,
-                LastFourDigits
-            ) VALUES (?, ?, ?, ?, CURDATE(), ?)
-        `, [
-            rentingId,
-            roomAvailability[0].Price *
-            Math.ceil((new Date(rentingDetails.checkOutDate) - new Date(rentingDetails.checkInDate)) / (1000 * 60 * 60 * 24)),
-            'Credit Card',
             employeeId,
-            payment.creditCardNumber.slice(-4)
+            totalPrice
         ]);
 
         await connection.commit();
         connection.release();
 
         res.status(201).json({
-            rentingId,
+            rentingId: rentingResult.insertId,
             customerId,
             message: 'Direct renting created successfully'
         });
@@ -285,29 +278,6 @@ router.post('/direct', async (req, res) => {
             error: err.message,
             code: err.code,
             sql: err.sql
-        });
-    }
-});
-
-// Get rentings by customer
-router.get('/customer/:id', async (req, res) => {
-    try {
-        const [rentings] = await pool.query(`
-            SELECT r.*, rm.RoomNumber, h.HotelName, h.City, h.State,
-                   (SELECT SUM(Amount) FROM payment p WHERE p.RentingID = r.RentingID) AS AmountPaid
-            FROM renting r
-            JOIN room rm ON r.RoomID = rm.RoomID
-            JOIN hotel h ON r.HotelID = h.HotelID
-            WHERE r.CustomerID = ?
-            ORDER BY r.CheckInDate DESC
-        `, [req.params.id]);
-
-        res.json(rentings);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({
-            message: 'Server error',
-            error: err.message
         });
     }
 });
