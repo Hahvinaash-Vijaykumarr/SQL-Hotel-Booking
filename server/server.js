@@ -33,6 +33,7 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../public', 'index.html'));
 });
 
+
 // Database connection
 const db = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
@@ -53,6 +54,28 @@ db.getConnection()
         console.error('Database connection failed:', err);
         process.exit(1);
     });
+
+
+// ========================== VIEW ENDPOINTS ==========================
+app.get('/api/views/available-rooms-by-area', async (req, res) => {
+    try {
+        const [results] = await db.query("SELECT * FROM vw_available_rooms_by_area");
+        res.json(results);
+    } catch (error) {
+        console.error("Error fetching available rooms by area:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
+app.get('/api/views/hotel-capacity-summary', async (req, res) => {
+    try {
+        const [results] = await db.query("SELECT * FROM vw_total_capacity_per_hotel");
+        res.json(results);
+    } catch (error) {
+        console.error("Error fetching hotel capacity summary:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

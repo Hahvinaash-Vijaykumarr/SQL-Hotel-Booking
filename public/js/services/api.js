@@ -214,11 +214,11 @@ export class ApiService {
 
     // ==================== REPORTING METHODS ====================
     async getAvailableRoomsByArea() {
-        return this.request('/views/available-rooms-by-area');
+        return this.request('/api/views/available-rooms-by-area');
     }
 
     async getHotelCapacitySummary() {
-        return this.request('/views/hotel-capacity-summary');
+        return this.request('/api/views/hotel-capacity-summary');
     }
 
     // ==================== UTILITY METHODS ====================
