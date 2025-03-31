@@ -11,29 +11,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
-// API Routes
-const authRoutes = require('./routes/auth');
-const bookingRoutes = require('./routes/booking');
-const roomRoutes = require('./routes/rooms');
-const customerRoutes = require('./routes/customers');
-const rentingRoutes = require('./routes/renting');
-
-// Changed from '/api/auth' to '/api' for the auth routes
-app.use('/api', authRoutes); // This is the critical change
-app.use('/api/bookings', bookingRoutes);
-app.use('/api/rooms', roomRoutes);
-app.use('/api/customers', customerRoutes);
-app.use('/api/rentings', rentingRoutes);
-
-// Static files
-app.use(express.static(path.join(__dirname, '../public')));
-
-// SPA catch-all
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public', 'index.html'));
-});
-
-
 // Database connection
 const db = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
@@ -45,6 +22,7 @@ const db = mysql.createPool({
     queueLimit: 0
 }).promise();
 
+// Verify connection
 db.getConnection()
     .then(connection => {
         console.log('Successfully connected to MySQL database');
@@ -55,26 +33,77 @@ db.getConnection()
         process.exit(1);
     });
 
+// ========== API ROUTES ==========
+const authRoutes = require('./routes/auth');
+const bookingRoutes = require('./routes/booking');
+const roomRoutes = require('./routes/rooms');
+const customerRoutes = require('./routes/customers');
+const rentingRoutes = require('./routes/renting');
 
-// ========================== VIEW ENDPOINTS ==========================
+app.use('/api', authRoutes);
+app.use('/api/bookings', bookingRoutes);
+app.use('/api/rooms', roomRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/rentings', rentingRoutes);
+
+// ========== VIEW ENDPOINTS ==========
 app.get('/api/views/available-rooms-by-area', async (req, res) => {
     try {
-        const [results] = await db.query("SELECT * FROM vw_available_rooms_by_area");
-        res.json(results);
+        const [results] = await db.query(`
+            SELECT 
+                h.State AS area,
+                COUNT(r.RoomID) AS available_rooms
+            FROM Hotel h
+            JOIN Room r ON h.HotelID = r.HotelID
+            WHERE r.RoomID NOT IN (
+                SELECT DISTINCT RoomID FROM Renting WHERE CheckOutDate IS NULL
+            )
+            AND r.RoomID NOT IN (
+                SELECT DISTINCT RoomID FROM Booking 
+                WHERE CheckInDate <= CURRENT_DATE AND CheckOutDate >= CURRENT_DATE
+            )
+            GROUP BY h.State
+            HAVING COUNT(r.RoomID) > 0
+            ORDER BY available_rooms DESC
+        `);
+
+        res.json({
+            success: true,
+            data: results,
+            timestamp: new Date().toISOString()
+        });
+
     } catch (error) {
-        console.error("Error fetching available rooms by area:", error);
-        res.status(500).json({ error: "Internal Server Error" });
+        console.error("Database error:", error);
+        res.status(500).json({ 
+            success: false,
+            error: "Failed to fetch available rooms",
+            details: process.env.NODE_ENV === 'development' ? error.message : null
+        });
     }
 });
 
 app.get('/api/views/hotel-capacity-summary', async (req, res) => {
     try {
-        const [results] = await db.query("SELECT * FROM vw_total_capacity_per_hotel");
+        const [results] = await db.query(`
+            SELECT 
+                hotel_name,
+                aggregated_capacity AS total_capacity
+            FROM vw_total_capacity_per_hotel
+        `);
         res.json(results);
     } catch (error) {
-        console.error("Error fetching hotel capacity summary:", error);
-        res.status(500).json({ error: "Internal Server Error" });
+        console.error("Error:", error);
+        res.status(500).json({ error: error.message });
     }
+});
+
+// Static files (must come after API routes)
+app.use(express.static(path.join(__dirname, '../public')));
+
+// SPA catch-all (must come last)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public', 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
