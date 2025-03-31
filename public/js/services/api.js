@@ -74,9 +74,11 @@ export class ApiService {
         });
     }
 
-    // In your apiService.js or equivalent
-    createDirectRenting(formData) {
-        return this.post('/rentings/direct', formData);
+    async createDirectRenting(rentingData) {
+        return this.request('/rentings', {
+            method: 'POST',
+            body: JSON.stringify(rentingData)
+        });
     }
 
     // ==================== ROOM METHODS ====================
@@ -212,13 +214,28 @@ export class ApiService {
 
     // ==================== REPORTING METHODS ====================
     async getAvailableRoomsByArea() {
-        return this.request('/api/views/available-rooms-by-area');
+        try {
+            const response = await fetch('/api/views/available-rooms-by-area');
+            const data = await response.json();
+            
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || 'Failed to fetch available rooms');
+            }
+            
+            return data.data || [];
+        } catch (error) {
+            console.error('API Error:', error);
+            return []; // Return empty array on error
+        }
     }
-
+    
     async getHotelCapacitySummary() {
-        return this.request('/api/views/hotel-capacity-summary');
+        const response = await fetch('/api/views/hotel-capacity-summary');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return await response.json();
     }
-
     // ==================== UTILITY METHODS ====================
     async checkAvailability(roomId, checkInDate, checkOutDate) {
         return this.request(`/rooms/${roomId}/availability`, {
