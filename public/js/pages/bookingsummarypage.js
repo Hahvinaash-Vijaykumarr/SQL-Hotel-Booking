@@ -174,10 +174,6 @@ export class BookingSummaryPage {
                                     <i class="bi bi-house me-2"></i>Return Home
                                 </a>
                                 <div>
-                                    <a href="#customer-bookings?customerId=${bookingData.customerId}" 
-                                       class="btn btn-primary mb-2 me-2">
-                                        <i class="bi bi-list-ul me-2"></i>View All Bookings
-                                    </a>
                                     <button class="btn btn-outline-primary mb-2" id="print-confirmation">
                                         <i class="bi bi-printer me-2"></i>Print Confirmation
                                     </button>

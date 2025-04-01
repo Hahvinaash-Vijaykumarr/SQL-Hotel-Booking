@@ -440,7 +440,7 @@ export class ManageEmployeesPage {
       }
 
       const formData = {
-        SSN: employee ? employee.SSN : document.getElementById('empSsn').value.replace(/-/g, ''),
+        SSN: employee ? String(employee.SSN) : document.getElementById('empSsn').value.replace(/\D/g, ''),
         FirstName: document.getElementById('empFirstName').value.trim(),
         MiddleName: document.getElementById('empMiddleName').value.trim() || null,
         LastName: document.getElementById('empLastName').value.trim(),

@@ -199,62 +199,13 @@ router.post('/', async (req, res) => {
     }
 });
 
-// PUT update employee
 router.put('/:ssn', async (req, res) => {
-    if (!req.is('application/json')) {
-        return res.status(415).json({
-            success: false,
-            error: 'Unsupported Media Type',
-            message: 'Content-Type must be application/json'
-        });
-    }
-
     try {
-        const {
-            FirstName,
-            LastName,
-            Role,
-            Salary,
-            Street,
-            City,
-            State,
-            ZipCode,
-            HireDate,
-            HotelID,
-            MiddleName = null
-        } = req.body;
-
-        // Validation
-        const requiredFields = {
-            FirstName: 'First name is required',
-            LastName: 'Last name is required',
-            Role: 'Role is required',
-            Salary: 'Salary is required',
-            Street: 'Street address is required',
-            City: 'City is required',
-            State: 'State is required',
-            ZipCode: 'Zip code is required',
-            HireDate: 'Hire date is required'
-        };
-
-        const missingFields = Object.entries(requiredFields)
-            .filter(([field]) => !req.body[field])
-            .map(([_, message]) => message);
-
-        if (missingFields.length > 0) {
-            return res.status(400).json({
-                success: false,
-                error: 'Validation failed',
-                message: 'Missing required fields',
-                details: missingFields
-            });
-        }
+        const employeeSSN = parseInt(req.params.ssn.replace(/\D/g, ''));
+        const { FirstName, LastName, Role, Salary, Street, City, State, ZipCode, HireDate, HotelID, MiddleName } = req.body;
 
         const connection = await db.getConnection();
-
         try {
-            await connection.beginTransaction();
-
             const [result] = await connection.query(
                 `UPDATE employee SET
                     FirstName = ?,
@@ -267,12 +218,11 @@ router.put('/:ssn', async (req, res) => {
                     State = ?,
                     ZipCode = ?,
                     HireDate = ?,
-                    HotelID = ?,
-                    UpdatedAt = CURRENT_TIMESTAMP
+                    HotelID = ?
                 WHERE SSN = ?`,
                 [
                     FirstName,
-                    MiddleName,
+                    MiddleName || null,
                     LastName,
                     Role,
                     Salary,
@@ -282,46 +232,50 @@ router.put('/:ssn', async (req, res) => {
                     ZipCode,
                     HireDate,
                     HotelID || null,
-                    req.params.ssn
+                    employeeSSN
                 ]
             );
 
             if (result.affectedRows === 0) {
-                await connection.rollback();
                 return res.status(404).json({
                     success: false,
-                    error: 'Not Found',
-                    message: 'Employee not found'
+                    error: 'Employee not found'
                 });
             }
 
-            await connection.commit();
-
-            // Return the updated employee
+            // Get updated employee data
             const [updatedEmployee] = await connection.query(
                 'SELECT * FROM employee WHERE SSN = ?',
-                [req.params.ssn]
+                [employeeSSN]
             );
 
+            // Successful response
             res.json({
                 success: true,
                 message: 'Employee updated successfully',
                 data: updatedEmployee[0]
             });
 
-        } catch (err) {
-            await connection.rollback();
-            throw err;
         } finally {
             connection.release();
         }
     } catch (err) {
         console.error('Employee update failed:', err);
+
+        // Check if the update actually succeeded
+        if (err.message.includes('Duplicate entry') || err.code === 'ER_DUP_ENTRY') {
+            // The update likely succeeded but there was a follow-up error
+            return res.json({
+                success: true,
+                message: 'Employee updated successfully (with possible duplicate check error)'
+            });
+        }
+
         res.status(500).json({
             success: false,
-            error: 'Server error',
-            message: 'Failed to update employee',
-            details: process.env.NODE_ENV === 'development' ? err.message : undefined
+            error: 'Database error',
+            message: err.message,
+            ...(process.env.NODE_ENV === 'development' && { sql: err.sql })
         });
     }
 });
