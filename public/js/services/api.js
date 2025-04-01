@@ -232,26 +232,38 @@ export class ApiService {
         return this.request('/chains');
     }
     
-    // ==================== ROOM MANAGEMENT ====================
-    async createRoom(roomData) {
-        return this.request('/rooms', {
-            method: 'POST',
-            body: JSON.stringify(roomData)
-        });
-    }
+// ==================== ROOM MANAGEMENT ====================
+async getHotelRooms(hotelId) {
+    return this.request(`/rooms/hotel/${hotelId}`);
+}
 
-    async updateRoom(roomId, roomData) {
-        return this.request(`/rooms/${roomId}`, {
-            method: 'PUT',
-            body: JSON.stringify(roomData)
-        });
-    }
+async getRoomById(roomId) {
+    return this.request(`/rooms/${roomId}`);
+}
 
-    async deleteRoom(roomId) {
-        return this.request(`/rooms/${roomId}`, {
-            method: 'DELETE'
-        });
-    }
+async createRoom(roomData) {
+    return this.request('/rooms', {
+        method: 'POST',
+        body: JSON.stringify(roomData)
+    });
+}
+
+async updateRoom(roomId, roomData) {
+    return this.request(`/rooms/${roomId}`, {
+        method: 'PUT',
+        body: JSON.stringify(roomData)
+    });
+}
+
+async deleteRoom(roomId) {
+    return this.request(`/rooms/${roomId}`, {
+        method: 'DELETE'
+    });
+}
+
+async getAllRooms() {
+    return this.request('/rooms');
+}
 
     // ==================== REPORTING METHODS ====================
     async getAvailableRoomsByArea() {

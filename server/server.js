@@ -107,11 +107,20 @@ app.get('/api/views/hotel-capacity-summary', async (req, res) => {
 // Static files (must come after API routes)
 app.use(express.static(path.join(__dirname, '../public')));
 
+
 // SPA catch-all (must come last)
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../public', 'index.html'));
 });
 
+// Add this after all your API routes
+app.use('/api', (req, res) => {
+    res.status(404).json({ 
+      success: false, 
+      error: 'API endpoint not found' 
+    });
+  });
+  
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

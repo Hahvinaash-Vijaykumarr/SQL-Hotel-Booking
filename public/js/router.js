@@ -97,7 +97,6 @@ export class Router {
                                 <li><a class="dropdown-item" href="#" data-page="manage-customers">Customers</a></li>
                                 <li><a class="dropdown-item" href="#" data-page="manage-employees">Employees</a></li>
                                 <li><a class="dropdown-item" href="#" data-page="manage-hotels">Hotels</a></li>
-                                <li><a class="dropdown-item" href="#" data-page="manage-rooms">Rooms</a></li>
                             </ul>
                         </li>
                     `;

@@ -126,6 +126,7 @@ export class ManageCustomersPage {
     document.querySelectorAll('.delete-customer').forEach(button => {
       button.addEventListener('click', async (e) => {
         const customerId = e.target.getAttribute('data-customer-id');
+        const customerName = e.target.closest('tr').querySelector('td:nth-child(2)').textContent;
         if (confirm('Are you sure you want to delete this customer?')) {
           try {
             await this.apiService.deleteCustomer(customerId);
@@ -136,6 +137,7 @@ export class ManageCustomersPage {
         }
       });
     });
+  }
 
   async showCustomerForm(customerId = null) {
     let customer = null;
