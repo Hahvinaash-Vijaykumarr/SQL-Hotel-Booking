@@ -192,6 +192,26 @@ export class ApiService {
         }
     }
 
+    async employeeLogin(ssn) {
+        try {
+            console.log('Attempting employee login with SSN:', ssn);
+            const response = await this.request('/employee/login', {
+                method: 'POST',
+                body: JSON.stringify({ ssn })
+            });
+
+            if (response.token) {
+                this.authService.setAuthToken(response.token);
+                this.authService.setUser(response.user);
+            }
+
+            return response;
+        } catch (error) {
+            console.error('Login failed:', error);
+            throw error;
+        }
+    }
+
     async getEmployee(ssn) {
         try {
             const response = await this.request(`/employees/${ssn}`);
@@ -271,7 +291,7 @@ export class ApiService {
     async getHotels() {
         return this.request('/hotels');
     }
-    
+
     async getHotelById(id) {
         return this.request(`/hotels/${id}`);
     }
@@ -282,25 +302,25 @@ export class ApiService {
             body: JSON.stringify(hotelData)
         });
     }
-    
+
     async updateHotel(id, hotelData) {
         return this.request(`/hotels/${id}`, {
             method: 'PUT',
             body: JSON.stringify(hotelData)
         });
     }
-    
+
     async deleteHotel(id) {
         return this.request(`/hotels/${id}`, {
             method: 'DELETE'
         });
     }
-    
+
     // Chain methods
     async getHotelChains() {
         return this.request('/chains');
     }
-    
+
     // ==================== ROOM MANAGEMENT ====================
     async createRoom(roomData) {
         return this.request('/rooms', {
