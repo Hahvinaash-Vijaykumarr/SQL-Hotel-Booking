@@ -39,12 +39,18 @@ const bookingRoutes = require('./routes/booking');
 const roomRoutes = require('./routes/rooms');
 const customerRoutes = require('./routes/customers');
 const rentingRoutes = require('./routes/renting');
+const hotelRoutes = require('./routes/hotels');
+const chainRoutes = require('./routes/chains');
+
 
 app.use('/api', authRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/rentings', rentingRoutes);
+app.use('/api/hotels', hotelRoutes);
+app.use('/api/chains', chainRoutes);
+
 
 // ========== VIEW ENDPOINTS ==========
 app.get('/api/views/available-rooms-by-area', async (req, res) => {
