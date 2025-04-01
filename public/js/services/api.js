@@ -15,23 +15,45 @@ export class ApiService {
             ...options.headers
         };
 
+        // Add authorization header if token exists
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
 
         try {
-            console.log(`Making request to: ${url}`);
             const response = await fetch(url, {
                 ...options,
-                headers
+                headers,
+                credentials: 'include' // Important for cookies if using them
             });
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || `Request failed with status ${response.status}`);
+            // Handle 401 Unauthorized responses
+            if (response.status === 401) {
+                // Clear any existing auth data
+                this.authService.clearAuth();
+
+                // Redirect to login page or show login modal
+                if (!window.location.pathname.includes('login')) {
+                    window.location.href = '/login';
+                }
+
+                throw new Error('Authentication required - please login');
             }
 
-            return response.json();
+            // Check for JSON response
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                throw new Error(`Expected JSON but got: ${text.substring(0, 100)}...`);
+            }
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || `Request failed with status ${response.status}`);
+            }
+
+            return data;
         } catch (error) {
             console.error(`API request to ${url} failed:`, error);
             throw error;
@@ -61,6 +83,23 @@ export class ApiService {
     }
 
     // ==================== RENTING METHODS ====================
+    // In your api.js file, add this method to the ApiService class
+    async getRentings() {
+        return this.request('/rentings');
+    }
+
+    async getRentingsByEmployee(employeeId) {
+        return this.request(`/rentings/employee/${employeeId}`);
+    }
+
+    async getActiveRentings() {
+        return this.request('/rentings/active');
+    }
+
+    async getCompletedRentings() {
+        return this.request('/rentings/completed');
+    }
+
     async createRentingFromBooking(bookingId, employeeId) {
         return this.request('/rentings/from-booking', {
             method: 'POST',
@@ -88,6 +127,10 @@ export class ApiService {
     // ==================== CUSTOMER METHODS ====================
     async getCustomers() {
         return this.request('/customers');
+    }
+
+    async getCustomer(customerId) {
+        return this.request(`/customers/id/${customerId}`);
     }
 
     async createCustomer(customerData) {
@@ -210,18 +253,18 @@ export class ApiService {
         try {
             const response = await fetch('/api/views/available-rooms-by-area');
             const data = await response.json();
-            
+
             if (!response.ok || !data.success) {
                 throw new Error(data.error || 'Failed to fetch available rooms');
             }
-            
+
             return data.data || [];
         } catch (error) {
             console.error('API Error:', error);
             return []; // Return empty array on error
         }
     }
-    
+
     async getHotelCapacitySummary() {
         const response = await fetch('/api/views/hotel-capacity-summary');
         if (!response.ok) {

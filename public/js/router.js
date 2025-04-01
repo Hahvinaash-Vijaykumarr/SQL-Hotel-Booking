@@ -83,7 +83,6 @@ export class Router {
                 `;
             } else if (['Receptionist', 'Manager'].includes(user.role)) {
                 mainNav.innerHTML += `
-                    <li class="nav-item"><a class="nav-link" href="#" data-page="employee-dashboard">Dashboard</a></li>
                     <li class="nav-item"><a class="nav-link" href="#" data-page="create-renting">Create Renting</a></li>
                     <li class="nav-item"><a class="nav-link" href="#" data-page="view-payments">View Payments</a></li>
                 `;
