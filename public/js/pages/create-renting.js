@@ -181,7 +181,7 @@ export class CreateRentingPage {
 
       if (response.rentingId) {
         alert(`Renting #${response.rentingId} created successfully`);
-        window.location.hash = '#employee-dashboard';
+        window.location.hash = `#booking-summary?id=${response.rentingId}`;
       } else {
         throw new Error('Unexpected response from server');
       }
@@ -272,7 +272,7 @@ export class CreateRentingPage {
 
       if (response.rentingId) {
         alert(`Renting #${response.rentingId} created successfully`);
-        window.location.hash = '#employee-dashboard';
+        window.location.hash = `#booking-summary?id=${response.rentingId}`;
       } else {
         throw new Error('Unexpected response from server');
       }

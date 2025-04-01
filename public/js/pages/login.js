@@ -3,7 +3,6 @@ export class LoginPage {
     this.authService = authService;
     this.apiService = apiService;
     this.router = router;
-
     this.handleEmployeeLogin = this.handleEmployeeLogin.bind(this);
   }
 
@@ -33,7 +32,6 @@ export class LoginPage {
         </div>
       </div>
     `;
-
     this.setupFormListeners();
   }
 
@@ -45,7 +43,6 @@ export class LoginPage {
         this.handleEmployeeLogin();
       });
 
-      // Only allow numeric input
       const ssnInput = document.getElementById('employeeSsn');
       ssnInput.addEventListener('input', (e) => {
         e.target.value = e.target.value.replace(/\D/g, '');
@@ -72,17 +69,26 @@ export class LoginPage {
         throw new Error('Please enter exactly 9 digits');
       }
 
+      console.log('Attempting login with SSN:', cleanSSN);
       const response = await this.apiService.employeeLogin(cleanSSN);
+      console.log('Login response:', response);
 
       if (!response.success) {
         throw new Error(response.message || 'Authentication failed');
       }
 
-      // Redirect based on role
-      const user = this.authService.getCurrentUser();
-      window.location.hash = user.role === 'Manager'
-        ? '#employee-dashboard'
-        : '#create-renting';
+      // Verify auth status
+      const isAuthenticated = this.authService.isAuthenticated();
+      console.log('Authentication status:', isAuthenticated);
+
+      if (!isAuthenticated) {
+        throw new Error('Authentication failed - no user session created');
+      }
+
+      // Force full page refresh and redirect to create-renting
+      console.log('Refreshing and redirecting to create-renting page');
+      window.location.href = window.location.origin + window.location.pathname + '#create-renting';
+      window.location.reload();
 
     } catch (error) {
       console.error('Login error:', error);

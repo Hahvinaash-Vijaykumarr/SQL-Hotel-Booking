@@ -6,7 +6,6 @@ import { SearchPage } from './pages/search.js';
 import { RoomDetailsPage } from './pages/room-details.js';
 import { CustomerBookingsPage } from './pages/customer-bookings.js';
 import { CustomerRentingsPage } from './pages/customer-rentings.js';
-import { EmployeeDashboardPage } from './pages/employee-dashboard.js';
 import { CreateRentingPage } from './pages/create-renting.js';
 import { RentingDetailsPage } from './pages/renting-details.js';
 import { ViewPaymentsPage } from './pages/view-payments.js';
@@ -31,7 +30,6 @@ const pages = {
     'customer-info': new CustomerInfoPage(apiService, authService), // Make sure this exists
     'customer-bookings': new CustomerBookingsPage(apiService),
     'customer-rentings': new CustomerRentingsPage(apiService),
-    'employee-dashboard': new EmployeeDashboardPage(apiService),
     'create-renting': new CreateRentingPage(apiService),
     'renting-details': new RentingDetailsPage(apiService),
     'view-payments': new ViewPaymentsPage(apiService),
@@ -69,12 +67,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Handle logout
-    document.addEventListener('click', e => {
-        if (e.target.matches('[data-action="logout"]')) {
+    // In your main application file (app.js or similar)
+    document.addEventListener('click', async (e) => {
+        if (e.target.matches('[data-action="logout"]') || e.target.closest('[data-action="logout"]')) {
             e.preventDefault();
-            authService.logout();
-            router.navigate('login');
+
+            // Show loading state if needed
+            const logoutButton = e.target.matches('[data-action="logout"]')
+                ? e.target
+                : e.target.closest('[data-action="logout"]');
+            const originalText = logoutButton.innerHTML;
+            logoutButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Logging out...';
+
+            try {
+                // Perform logout
+                await authService.logout();
+
+                // Force full page refresh and redirect to login
+                window.location.href = window.location.origin + window.location.pathname + '#login';
+                window.location.reload();
+
+            } catch (error) {
+                console.error('Logout error:', error);
+                logoutButton.innerHTML = originalText;
+                alert('Logout failed. Please try again.');
+            }
         }
     });
 });
