@@ -39,6 +39,7 @@ const bookingRoutes = require('./routes/booking');
 const roomRoutes = require('./routes/rooms');
 const customerRoutes = require('./routes/customers');
 const rentingRoutes = require('./routes/renting');
+const employeeRouter = require('./routes/employee');
 const hotelRoutes = require('./routes/hotels');
 const chainRoutes = require('./routes/chains');
 
@@ -48,6 +49,7 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/rentings', rentingRoutes);
+app.use('/api/employees', employeeRouter);
 app.use('/api/hotels', hotelRoutes);
 app.use('/api/chains', chainRoutes);
 
@@ -81,7 +83,7 @@ app.get('/api/views/available-rooms-by-area', async (req, res) => {
 
     } catch (error) {
         console.error("Database error:", error);
-        res.status(500).json({ 
+        res.status(500).json({
             success: false,
             error: "Failed to fetch available rooms",
             details: process.env.NODE_ENV === 'development' ? error.message : null
