@@ -336,22 +336,11 @@ export class ApiService {
     async getHotelChains() {
         return this.request('/chains');
     }
-<<<<<<< HEAD
     
 // ==================== ROOM MANAGEMENT ====================
 async getHotelRooms(hotelId) {
     return this.request(`/rooms/hotel/${hotelId}`);
 }
-=======
-
-    // ==================== ROOM MANAGEMENT ====================
-    async createRoom(roomData) {
-        return this.request('/rooms', {
-            method: 'POST',
-            body: JSON.stringify(roomData)
-        });
-    }
->>>>>>> 27fdf13533cea1d44e255474cce7d9a9c4fe41f4
 
 async getRoomById(roomId) {
     return this.request(`/rooms/${roomId}`);
