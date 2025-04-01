@@ -23,8 +23,11 @@ export class ApiService {
         try {
             const response = await fetch(url, {
                 ...options,
-                headers,
-                credentials: 'include' // Important for cookies if using them
+                credentials: 'include', // For session cookies
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                }
             });
 
             // Handle 401 Unauthorized responses
@@ -40,23 +43,29 @@ export class ApiService {
                 throw new Error('Authentication required - please login');
             }
 
-            // Check for JSON response
+            // Check for HTML response
             const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
+            if (contentType && contentType.includes('text/html')) {
                 const text = await response.text();
-                throw new Error(`Expected JSON but got: ${text.substring(0, 100)}...`);
+                if (text.includes('login') || text.includes('sign in')) {
+                    throw new Error('Authentication required - please login');
+                }
+                throw new Error(`Expected JSON but got HTML: ${text.substring(0, 100)}...`);
             }
-
-            const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || `Request failed with status ${response.status}`);
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `Request failed with status ${response.status}`);
             }
 
-            return data;
+            return response.json();
         } catch (error) {
-            console.error(`API request to ${url} failed:`, error);
-            throw error;
+            console.error('API request failed:', {
+                endpoint,
+                error: error.message,
+                stack: error.stack
+            });
+            throw new Error(`Failed to load data: ${error.message}`);
         }
     }
 
@@ -155,46 +164,106 @@ export class ApiService {
 
     // ==================== EMPLOYEE METHODS ====================
     async getEmployees() {
-        return this.request('/employees');
+        try {
+            const response = await this.request('/employees');
+
+            // Handle case where response is the direct array
+            if (Array.isArray(response)) {
+                return response;
+            }
+
+            // Handle case where response is an object with data property
+            if (response && Array.isArray(response.data)) {
+                return response.data;
+            }
+
+            // Handle case where response is an object with employees property
+            if (response && Array.isArray(response.employees)) {
+                return response.employees;
+            }
+
+            throw new Error('Invalid employee data format received');
+        } catch (error) {
+            console.error('Failed to get employees:', {
+                error: error.message,
+                response: error.response
+            });
+            throw new Error(`Failed to load employees: ${error.message}`);
+        }
+    }
+
+    async getEmployee(ssn) {
+        try {
+            const response = await this.request(`/employees/${ssn}`);
+            return response.data;
+        } catch (error) {
+            console.error('Failed to fetch employee:', error);
+            throw new Error(error.response?.data?.message || 'Failed to load employee');
+        }
     }
 
     async createEmployee(employeeData) {
-        return this.request('/employees', {
-            method: 'POST',
-            body: JSON.stringify(employeeData)
-        });
-    }
-
-    async updateEmployee(employeeId, employeeData) {
-        return this.request(`/employees/${employeeId}`, {
-            method: 'PUT',
-            body: JSON.stringify(employeeData)
-        });
-    }
-
-    async deleteEmployee(employeeId) {
-        return this.request(`/employees/${employeeId}`, {
-            method: 'DELETE'
-        });
-    }
-
-    async employeeLogin(ssn) {
         try {
-            console.log('Attempting employee login with SSN:', ssn);
-            const response = await this.request('/employee/login', {
+            const response = await this.request('/employees', {
                 method: 'POST',
-                body: JSON.stringify({ ssn })
+                body: JSON.stringify(employeeData)
             });
+            return response.data;
+        } catch (error) {
+            console.error('Failed to create employee:', error);
 
-            if (response.token) {
-                this.authService.setAuthToken(response.token);
-                this.authService.setUser(response.user);
+            let errorMessage = error.message;
+            if (error.response?.data?.details) {
+                errorMessage += `\n${error.response.data.details.join('\n')}`;
             }
 
-            return response;
+            throw new Error(errorMessage);
+        }
+    }
+
+    async updateEmployee(ssn, data) {
+        try {
+            const response = await this.request(`/api/employees/${ssn}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `Failed to update employee. Status: ${response.status}`);
+            }
+
+            return await response.json();
         } catch (error) {
-            console.error('Login failed:', error);
-            throw error;
+            console.error('Update employee error:', error);
+            throw new Error(`Failed to update employee: ${error.message}`);
+        }
+    }
+
+    async deleteEmployee(ssn) {
+        try {
+            // Normalize SSN format (remove hyphens if present)
+            const normalizedSsn = ssn.replace(/-/g, '');
+
+            const response = await this.request(`/api/employees/${normalizedSsn}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `Server responded with status ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error(`Failed to delete employee ${ssn}:`, error);
+            throw new Error(`Failed to delete employee: ${error.message}`);
         }
     }
 
