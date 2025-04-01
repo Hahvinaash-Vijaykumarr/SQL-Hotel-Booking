@@ -271,6 +271,10 @@ export class ApiService {
     async getHotels() {
         return this.request('/hotels');
     }
+    
+    async getHotelById(id) {
+        return this.request(`/hotels/${id}`);
+    }
 
     async createHotel(hotelData) {
         return this.request('/hotels', {
@@ -278,24 +282,25 @@ export class ApiService {
             body: JSON.stringify(hotelData)
         });
     }
-
-    async updateHotel(hotelId, hotelData) {
-        return this.request(`/hotels/${hotelId}`, {
+    
+    async updateHotel(id, hotelData) {
+        return this.request(`/hotels/${id}`, {
             method: 'PUT',
             body: JSON.stringify(hotelData)
         });
     }
-
-    async deleteHotel(hotelId) {
-        return this.request(`/hotels/${hotelId}`, {
+    
+    async deleteHotel(id) {
+        return this.request(`/hotels/${id}`, {
             method: 'DELETE'
         });
     }
-
-    async getHotelRooms(hotelId) {
-        return this.request(`/hotels/${hotelId}/rooms`);
+    
+    // Chain methods
+    async getHotelChains() {
+        return this.request('/chains');
     }
-
+    
     // ==================== ROOM MANAGEMENT ====================
     async createRoom(roomData) {
         return this.request('/rooms', {
