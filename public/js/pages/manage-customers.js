@@ -136,7 +136,6 @@ export class ManageCustomersPage {
         }
       });
     });
-  }
 
   async showCustomerForm(customerId = null) {
     let customer = null;
